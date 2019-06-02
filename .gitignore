@@ -103,5 +103,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# PyCharm
+.idea
+
 # Developer Environment
 devPlatform
