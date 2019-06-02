@@ -4,10 +4,11 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+twine = "*"
 
 [packages]
-minio = "==4.0.17"
-django = "*"
+minio = ">=4.0.9"
+django = ">=2.0.1"
 
 [requires]
 python_version = "3.7"

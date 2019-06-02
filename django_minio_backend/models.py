@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.core.files.storage import Storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.utils.timezone import utc
 from django.utils.deconstruct import deconstructible
 
 # Third-party (MinIO) packages
@@ -18,8 +19,20 @@ from minio.error import NoSuchKey, NoSuchBucket
 from urllib3.exceptions import MaxRetryError
 
 
+__all__ = ['MinioBackend', 'get_iso_date', 'iso_date_prefix']
+
+
 def get_setting(name, default=None):
     return getattr(settings, name, default)
+
+
+def get_iso_date() -> str:
+    now = datetime.utcnow().replace(tzinfo=utc)
+    return f"{now.year}-{now.month}-{now.day}"
+
+
+def iso_date_prefix(_, file_name_ext: str) -> str:
+    return f"{get_iso_date()}/{file_name_ext}"
 
 
 @deconstructible
