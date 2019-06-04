@@ -22,20 +22,12 @@ class PublicAttachment(models.Model):
         """
         return f"{get_iso_date()}/{self.content_type}/{file_name_ext}"
 
-    def delete(self, using=None, keep_parents=False):
+    def delete(self, *args, **kwargs):
         """
         Delete must be overridden because the inherited delete method does not call `self.file.delete()`.
         """
-        using = using or router.db_for_write(self.__class__, instance=self)
-        assert self.pk is not None, (
-                "%s object can't be deleted because its %s attribute is set to None." %
-                (self._meta.object_name, self._meta.pk.attname)
-        )
-
-        collector = Collector(using=using)
-        collector.collect([self], keep_parents=keep_parents)
         self.file.delete()
-        return collector.delete()
+        super(PublicAttachment, self).delete(*args, **kwargs)
 
     @property
     def file_name(self):
@@ -70,17 +62,12 @@ class PrivateAttachment(models.Model):
         """
         return f"{get_iso_date()}/{self.content_type}/{file_name_ext}"
 
-    def delete(self, using=None, keep_parents=False):
-        using = using or router.db_for_write(self.__class__, instance=self)
-        assert self.pk is not None, (
-                "%s object can't be deleted because its %s attribute is set to None." %
-                (self._meta.object_name, self._meta.pk.attname)
-        )
-
-        collector = Collector(using=using)
-        collector.collect([self], keep_parents=keep_parents)
+    def delete(self, *args, **kwargs):
+        """
+        Delete must be overridden because the inherited delete method does not call `self.file.delete()`.
+        """
         self.file.delete()
-        return collector.delete()
+        super(PrivateAttachment, self).delete(*args, **kwargs)
 
     @property
     def file_name(self):
