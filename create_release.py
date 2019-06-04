@@ -16,7 +16,6 @@ def main() -> int:
         print("Please install `twine`\n"
               "If you're using Pipenv, run: pipenv sync --dev\n")
 
-
     # Prompt for version
     print("\n"
           "Did you increment the software version in `setup.py`?")
@@ -41,7 +40,10 @@ def main() -> int:
         # "bdist_wheel"
     ]
     print("FSZOM", python, cmd_create_package)
-    proc_create_package: CompletedProcess = run(cmd_create_package, shell=False, stdout=PIPE, stderr=PIPE)
+    if platform == "win32":
+        proc_create_package: CompletedProcess = run(cmd_create_package, shell=False, stdout=PIPE, stderr=PIPE)
+    else:
+        proc_create_package: CompletedProcess = run(" ".join(cmd_create_package), shell=False, stdout=PIPE, stderr=PIPE)
     if proc_create_package.stderr:
         print("ERROR:", proc_create_package.stderr)
         return 1
@@ -54,7 +56,10 @@ def main() -> int:
         "upload",
         dist
     ]
-    proc_upload_package: CompletedProcess = run(cmd_upload_to_pypi, shell=True, stdout=PIPE, stderr=PIPE)
+    if platform == "win32":
+        proc_upload_package: CompletedProcess = run(cmd_upload_to_pypi, shell=True, stdout=PIPE, stderr=PIPE)
+    else:
+        proc_upload_package: CompletedProcess = run(" ".join(cmd_upload_to_pypi), shell=True, stdout=PIPE, stderr=PIPE)
     print("proc_upload_package stdout", proc_upload_package.stdout)
     print("proc_upload_package stderr", proc_upload_package.stderr)
     if proc_upload_package.stderr:
