@@ -1,12 +1,22 @@
+#!/usr/bin/env python3
+
 from subprocess import run, PIPE, CompletedProcess
 from sys import platform, exit
 from os import environ
 
 
-python = "python" if platform == "win32" else "python3",
+python = "python" if platform == "win32" else "python3"
+dist = "dist/*" if platform == "win32" else "./dist/*"
 
 
 def main() -> int:
+    try:
+        import twine
+    except ModuleNotFoundError:
+        print("Please install `twine`\n"
+              "If you're using Pipenv, run: pipenv sync --dev\n")
+
+
     # Prompt for version
     print("\n"
           "Did you increment the software version in `setup.py`?")
@@ -21,15 +31,17 @@ def main() -> int:
               "  * TWINE_USERNAME\n"
               "  * TWINE_PASSWORD\n"
               )
+        return 1
 
     # Create sdist, bdist_wheel
     cmd_create_package = [
         python,
         "setup.py",
         "sdist",
-        "bdist_wheel"
+        # "bdist_wheel"
     ]
-    proc_create_package: CompletedProcess = run(cmd_create_package, shell=True, stdout=PIPE, stderr=PIPE)
+    print("FSZOM", python, cmd_create_package)
+    proc_create_package: CompletedProcess = run(cmd_create_package, shell=False, stdout=PIPE, stderr=PIPE)
     if proc_create_package.stderr:
         print("ERROR:", proc_create_package.stderr)
         return 1
@@ -40,7 +52,7 @@ def main() -> int:
         "-m",
         "twine",
         "upload",
-        "dist/*"
+        dist
     ]
     proc_upload_package: CompletedProcess = run(cmd_upload_to_pypi, shell=True, stdout=PIPE, stderr=PIPE)
     print("proc_upload_package stdout", proc_upload_package.stdout)
