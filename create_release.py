@@ -39,11 +39,10 @@ def main() -> int:
         "sdist",
         # "bdist_wheel"
     ]
-    print("FSZOM", python, cmd_create_package)
     if platform == "win32":
-        proc_create_package: CompletedProcess = run(cmd_create_package, shell=False, stdout=PIPE, stderr=PIPE)
+        proc_create_package: CompletedProcess = run(cmd_create_package, shell=True, stdout=PIPE, stderr=PIPE)
     else:
-        proc_create_package: CompletedProcess = run(" ".join(cmd_create_package), shell=False, stdout=PIPE, stderr=PIPE)
+        proc_create_package: CompletedProcess = run(" ".join(cmd_create_package), shell=True, stdout=PIPE, stderr=PIPE)
     if proc_create_package.stderr:
         print("ERROR:", proc_create_package.stderr)
         return 1
@@ -60,8 +59,6 @@ def main() -> int:
         proc_upload_package: CompletedProcess = run(cmd_upload_to_pypi, shell=True, stdout=PIPE, stderr=PIPE)
     else:
         proc_upload_package: CompletedProcess = run(" ".join(cmd_upload_to_pypi), shell=True, stdout=PIPE, stderr=PIPE)
-    print("proc_upload_package stdout", proc_upload_package.stdout)
-    print("proc_upload_package stderr", proc_upload_package.stderr)
     if proc_upload_package.stderr:
         print("ERROR:", proc_upload_package.stderr)
         return 1
