@@ -2,15 +2,15 @@
 The `django-minio-backend` provides a wrapper around the 
 [MinIO Python Library](https://docs.min.io/docs/python-client-quickstart-guide.html).
 
-# Integration
+## Integration
 1. Get and install the package:
     `pip install django-minio-backend`
 
 2. Add `django_minio_backend` to `INSTALLED_APPS`:
     ```python
     INSTALLED_APPS = [
-    '...'
-    'django_minio_backend',  # django-minio-backend
+        '...'
+        'django_minio_backend',  # django-minio-backend | https://github.com/theriverman/django-minio-backend
     ]
     ```
 
@@ -37,18 +37,27 @@ The `django-minio-backend` provides a wrapper around the
                                 upload_to=iso_date_prefix)
     ```
 
-## Reference Implementation
+5. Initialize buckets & set public policy (OPTIONAL):<br>
+    This `django-admin` command creates both the private and public buckets in case one of them does not exists
+    and sets the public bucket's privacy policy from private(default) to public.<br>
+    `python manage.py initialize_buckets`
+    
+    Code reference: [initialize_buckets.py](django_minio_backend/management/commands/initialize_buckets.py).
+
+
+### Reference Implementation
 For a reference implementation, see [Examples](examples).
 
-# Compatibility
+## Compatibility
   * Django 2.0 or later
   * Python 3.5.0 or later
-**Note:** This library relies heavily on [PEP 484 -- Type Hints](https://www.python.org/dev/peps/pep-0484/) which was introduced in *Python 3.5.0*.
+**Note:** This library relies heavily on [PEP 484 -- Type Hints](https://www.python.org/dev/peps/pep-0484/) 
+which was introduced in *Python 3.5.0*.
 
-# Contribution
+## Contribution
 To build a new package, execute the following command:
 `python setup.py sdist`
 
-# Copyright
+## Copyright
 theriverman/django-minio-backend licensed under the MIT License
 minio/minio-py is licensed under the Apache License 2.0

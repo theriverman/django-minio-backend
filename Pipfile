@@ -8,7 +8,7 @@ twine = "*"
 
 [packages]
 minio = ">=4.0.9"
-django = ">=2.0.1"
+django = ">=2.2.2"
 
 [requires]
 python_version = "3.5"
