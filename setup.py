@@ -1,15 +1,15 @@
 import os
 from setuptools import find_packages, setup
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+with open("README.md", "r") as readme_file:
+    long_description = readme_file.read()
 
 # allow setup.py to be run from any path
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-minio-backend',
-    version='0.0.7',
+    version='0.0.8',
     packages=find_packages(),
     include_package_data=True,
     license='MIT License | Copyright (c) 2019 Kristof Daja',
@@ -20,7 +20,7 @@ setup(
     author='Kristof Daja (theriverman)',
     author_email='kristof@daja.hu',
     install_requires=[
-        'Django>=2.0.1',
+        'Django>=2.2.2',
         'minio>=4.0.9',
     ],
     classifiers=[
