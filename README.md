@@ -1,6 +1,6 @@
 # django-minio-backend
 The `django-minio-backend` provides a wrapper around the 
-[MinIO Python Library](https://docs.min.io/docs/python-client-quickstart-guide.html).
+[MinIO Python SDK](https://docs.min.io/docs/python-client-quickstart-guide.html).
 
 ## Integration
 1. Get and install the package:
@@ -65,6 +65,7 @@ For a reference implementation, see [Examples](examples).
 ## Compatibility
   * Django 2.0 or later
   * Python 3.5.0 or later
+
 **Note:** This library relies heavily on [PEP 484 -- Type Hints](https://www.python.org/dev/peps/pep-0484/) 
 which was introduced in *Python 3.5.0*.
 
@@ -73,5 +74,5 @@ To build a new package, execute the following command:
 `python setup.py sdist`
 
 ## Copyright
-theriverman/django-minio-backend licensed under the MIT License
-minio/minio-py is licensed under the Apache License 2.0
+  * theriverman/django-minio-backend licensed under the MIT License
+  * minio/minio-py is licensed under the Apache License 2.0

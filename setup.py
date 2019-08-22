@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-minio-backend',
-    version='0.0.9',
+    version='0.1.0',
     packages=find_packages(),
     include_package_data=True,
     license='MIT License | Copyright (c) 2019 Kristof Daja',

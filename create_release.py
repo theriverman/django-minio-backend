@@ -8,6 +8,19 @@ from os import environ
 python = "python" if platform == "win32" else "python3"
 dist = "dist/*" if platform == "win32" else "./dist/*"
 
+"""
+Setting environmental variables
+
+Linux
+export TWINE_USERNAME=my-fab-account
+export TWINE_PASSWORD=myS3cr3tP4ssw0rd
+
+Windows
+set TWINE_USERNAME=my-fab-account
+set TWINE_PASSWORD=myS3cr3tP4ssw0rd
+
+"""
+
 
 def main() -> int:
     try:
