@@ -44,6 +44,20 @@ The `django-minio-backend` provides a wrapper around the
     
     Code reference: [initialize_buckets.py](django_minio_backend/management/commands/initialize_buckets.py).
 
+### Health Check
+To check the connection link between Django and MinIO, use the provided `MinioBackend.is_minio_available()` method.<br>
+It returns a `MinioServerStatus` instance which can be quickly evaluated as boolean.<br>
+
+**Example:**
+```
+minio_available = MinioBackend.is_minio_available()
+if minio_available:
+    print("OK")
+else:
+    print("NOK")
+    print(minio_available.details)
+```
+
 
 ### Reference Implementation
 For a reference implementation, see [Examples](examples).

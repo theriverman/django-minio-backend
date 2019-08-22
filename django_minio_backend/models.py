@@ -1,22 +1,24 @@
 # Standard python packages
 import json
-from typing import Union
+from datetime import datetime, timedelta
 from pathlib import Path
 from time import mktime
-from datetime import datetime, timedelta
+from typing import Union
+import urllib3
 
 # Django packages
 from django.conf import settings
 from django.core.files.storage import Storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.utils.timezone import utc
 from django.utils.deconstruct import deconstructible
-
+from django.utils.timezone import utc
 # Third-party (MinIO) packages
 from minio import Minio
 from minio.definitions import Object
 from minio.error import NoSuchKey, NoSuchBucket
 from urllib3.exceptions import MaxRetryError
+# Local Packages
+from .utils import MinioServerStatus
 
 
 __all__ = ['MinioBackend', 'get_iso_date', 'iso_date_prefix']
@@ -38,9 +40,8 @@ def iso_date_prefix(_, file_name_ext: str) -> str:
 @deconstructible
 class MinioBackend(Storage):
     def __init__(self, *args, **kwargs):
-        self.i = 0  # Could become unused
-        self._META_ARGS = args  # Could become unused
-        self._META_KWARGS = kwargs  # Could become unused
+        self._META_ARGS = args
+        self._META_KWARGS = kwargs
         self._BUCKET: str = kwargs.get("bucket", "")
         self.MINIO_ENDPOINT: str = get_setting("MINIO_ENDPOINT")
         self.MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
@@ -49,7 +50,27 @@ class MinioBackend(Storage):
         self.MINIO_PRIVATE_BUCKET_NAME: str = get_setting("MINIO_PRIVATE_BUCKET_NAME", "")
         self.MINIO_PUBLIC_BUCKET_NAME: str = get_setting("MINIO_PUBLIC_BUCKET_NAME", "")
         self.IS_PUBLIC: bool = kwargs.get("is_public", False)
+        self.HTTP_CLIENT: urllib3.poolmanager.PoolManager = kwargs.get("http_client", None)  # https://docs.min.io/docs/python-client-api-reference.html
         self._client: Union[Minio, None] = None
+
+    def is_minio_available(self) -> MinioServerStatus:
+        if not self.MINIO_ENDPOINT:
+            mss = MinioServerStatus(None)
+            mss.add_message('MINIO_ENDPOINT is not configured in Django settings')
+            return mss
+
+        http = urllib3.PoolManager()
+        try:
+            r = http.request('GET', f'{self.MINIO_ENDPOINT}/minio/index.html', timeout=10.0)
+            return MinioServerStatus(r)
+        except urllib3.exceptions.MaxRetryError:
+            mss = MinioServerStatus(None)
+            mss.add_message(f'Could not open connection to {self.MINIO_ENDPOINT}/minio/index.html ...')
+            return mss
+        except Exception as e:
+            mss = MinioServerStatus(None)
+            mss.add_message(repr(e))
+            return mss
 
     # django.core.files.storage.Storage
     def _save(self, file_path_name: str, content: InMemoryUploadedFile):
@@ -194,7 +215,8 @@ class MinioBackend(Storage):
             endpoint=self.MINIO_ENDPOINT,
             access_key=self.MINIO_ACCESS_KEY,
             secret_key=self.MINIO_SECRET_KEY,
-            secure=self.MINIO_USE_HTTPS
+            secure=self.MINIO_USE_HTTPS,
+            http_client=self.HTTP_CLIENT,
         )
         self._client = minio_client
 
