@@ -5,7 +5,6 @@ from pathlib import Path
 from time import mktime
 from typing import Union
 import urllib3
-
 # Django packages
 from django.conf import settings
 from django.core.files.storage import Storage
@@ -161,21 +160,21 @@ class MinioBackend(Storage):
             raise ConnectionError("Couldn't connect to Minio. Check django_minio_backend parameters in Django-Settings")
 
     def path(self, name):
-        raise NotImplementedError("Storage system can't be accessed using open().")
+        raise NotImplementedError("The minIO storage system doesn't support absolute paths.")
 
     def get_accessed_time(self, name: str) -> datetime:
         """
         Return the last accessed time (as a datetime) of the file specified by
         name. The datetime will be timezone-aware if USE_TZ=True.
         """
-        return datetime(year=1970, month=1, day=1, hour=0, minute=0, second=0)
+        raise NotImplementedError('minIO does not store last accessed time')
 
     def get_created_time(self, name: str) -> datetime:
         """
         Return the creation time (as a datetime) of the file specified by name.
         The datetime will be timezone-aware if USE_TZ=True.
         """
-        return datetime(year=1970, month=1, day=1, hour=0, minute=0, second=0)
+        raise NotImplementedError('minIO does not store creation time')
 
     def get_modified_time(self, name: str) -> datetime:
         """
