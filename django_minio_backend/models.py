@@ -58,9 +58,9 @@ class MinioBackend(Storage):
             mss.add_message('MINIO_ENDPOINT is not configured in Django settings')
             return mss
 
-        http = urllib3.PoolManager()
+        c = urllib3.HTTPSConnectionPool(self.MINIO_ENDPOINT, cert_reqs='CERT_NONE', assert_hostname=False)
         try:
-            r = http.request('GET', f'{self.MINIO_ENDPOINT}/minio/index.html', timeout=10.0)
+            r = c.request('GET', '/minio/index.html')
             return MinioServerStatus(r)
         except urllib3.exceptions.MaxRetryError:
             mss = MinioServerStatus(None)
