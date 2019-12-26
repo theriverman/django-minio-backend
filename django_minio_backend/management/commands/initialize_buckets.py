@@ -1,11 +1,10 @@
-from django.core.management.base import BaseCommand, no_translations
+from django.core.management.base import BaseCommand
 from django_minio_backend.models import MinioBackend
 
 
 class Command(BaseCommand):
     help = 'Helps initializing Minio buckets by creating them and setting their policies.'
 
-    @no_translations
     def handle(self, *args, **options):
         self.stdout.write(f"Initializing Minio buckets...")
         m = MinioBackend()
