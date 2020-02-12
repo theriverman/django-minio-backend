@@ -1,3 +1,4 @@
+[![Board Status](https://dev.azure.com/kristofdaja/ce976b79-9da3-4e26-a128-0e9471858160/0d69c064-41f3-4a98-9c49-1623149803d9/_apis/work/boardbadge/4fbdd57f-fc00-4dd6-8f2f-a1ced6cfbb10)](https://dev.azure.com/kristofdaja/ce976b79-9da3-4e26-a128-0e9471858160/_boards/board/t/0d69c064-41f3-4a98-9c49-1623149803d9/Microsoft.RequirementCategory)
 # django-minio-backend
 The `django-minio-backend` provides a wrapper around the 
 [MinIO Python SDK](https://docs.min.io/docs/python-client-quickstart-guide.html).
