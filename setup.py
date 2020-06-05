@@ -1,4 +1,6 @@
 import os
+import datetime
+import subprocess
 from setuptools import find_packages, setup
 
 with open("README.md", "r") as readme_file:
@@ -7,12 +9,15 @@ with open("README.md", "r") as readme_file:
 # allow setup.py to be run from any path
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
+git_tag = subprocess.check_output(['git', 'describe', '--tags']).strip().decode('utf-8')
+year = datetime.datetime.now().year
+
 setup(
     name='django-minio-backend',
-    version='{{ VERSION_FROM_GIT_TAG }}',
+    version=git_tag,
     packages=find_packages(),
     include_package_data=True,
-    license='MIT License | Copyright (c) {{ CURRENT_DATE_YEAR }} Kristof Daja',
+    license=f'MIT License | Copyright (c) {year} Kristof Daja',
     description='The django-minio-backend provides a wrapper around the MinIO Python Library.',
     long_description=long_description,
     long_description_content_type="text/markdown",
