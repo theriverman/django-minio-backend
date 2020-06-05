@@ -9,10 +9,10 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-minio-backend',
-    version='1.1.2',
+    version='2.0.0',
     packages=find_packages(),
     include_package_data=True,
-    license='MIT License | Copyright (c) 2019 Kristof Daja',
+    license='MIT License | Copyright (c) 2020 Kristof Daja',
     description='The django-minio-backend provides a wrapper around the MinIO Python Library.',
     long_description=long_description,
     long_description_content_type="text/markdown",

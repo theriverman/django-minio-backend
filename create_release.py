@@ -11,7 +11,7 @@ dist = "dist/*" if platform == "win32" else "./dist/*"
 """
 Setting environmental variables
 
-Linux
+Linux/macOS
 export TWINE_USERNAME=my-fab-account
 export TWINE_PASSWORD=myS3cr3tP4ssw0rd
 
