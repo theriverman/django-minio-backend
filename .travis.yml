@@ -6,7 +6,7 @@ python:
   - "3.8"
 
 # host environment
-os: "linux"
+os: linux
 dist: bionic
 
 # command to install dependencies
@@ -24,7 +24,7 @@ jobs:
     - stage: pypi release
       script:
         - echo "Deploying to PyPI ..."
-        - sh -c 'sed -i "s/{{ VERSION_FROM_GIT_TAG }}/$(git describe --tags)/g;s/{{ CURRENT_DATE_YEAR }}/$(date +"%Y")/g" setup.py'
+      before_deploy: sh -c 'sed -i "s/{{ VERSION_FROM_GIT_TAG }}/$(git describe --tags)/g;s/{{ CURRENT_DATE_YEAR }}/$(date +"%Y")/g" setup.py'
       deploy:  # deploy (on tag) to PyPI
         provider: pypi
         username: __token__
