@@ -13,7 +13,7 @@ The `django-minio-backend` provides a wrapper around the
 ```python
 INSTALLED_APPS = [
     '...'
-    'django_minio_backend',  # django-minio-backend | https://github.com/theriverman/django-minio-backend
+    'django_minio_backend',  # https://github.com/theriverman/django-minio-backend
 ]
 ```
 
@@ -21,7 +21,7 @@ If you would like to enable on-start consistency check, install via `DjangoMinio
 ```python
 INSTALLED_APPS = [
     '...'
-    'django_minio_backend.apps.DjangoMinioBackendConfig',  # django-minio-backend | https://github.com/theriverman/django-minio-backend
+    'django_minio_backend.apps.DjangoMinioBackendConfig',  # https://github.com/theriverman/django-minio-backend
 ]
 ``` 
 Then add the following parameter to your settings file:
@@ -31,14 +31,15 @@ MINIO_CONSISTENCY_CHECK_ON_START = True
 
 **Note:** The on-start consistency check equals to manually calling `python manage.py initialize_buckets`. <br>
 It is recommended to turn *off* this feature during development, 
-because this function can noticeably slow down Django's boot time.
+by setting `MINIO_CONSISTENCY_CHECK_ON_START` to `False`, 
+because this operation can noticeably slow down Django's boot time when many buckets are configured.
 
 3. Add the following parameters to your `settings.py`:
 ```python
 from datetime import timedelta
 from typing import List, Tuple
 
-MINIO_ENDPOINT = 'minio.yourcompany.co.uk'
+MINIO_ENDPOINT = 'minio.your-company.co.uk'
 MINIO_ACCESS_KEY = 'yourMinioAccessKey'
 MINIO_SECRET_KEY = 'yourVeryS3cr3tP4ssw0rd'
 MINIO_USE_HTTPS = True
@@ -61,7 +62,7 @@ from django_minio_backend import MinioBackend, iso_date_prefix
 # noinspection PyUnresolvedReferences
 class PrivateAttachment(models.Model):   
     file = models.FileField(verbose_name="Object Upload",
-                            storage=MinioBackend(bucket_name='my-private-bucket'),
+                            storage=MinioBackend(bucket_name='django-backend-dev-private'),
                             upload_to=iso_date_prefix)
 ```
 
