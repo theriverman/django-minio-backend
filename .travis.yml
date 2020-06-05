@@ -22,7 +22,9 @@ script:
 jobs:
   include:
     - stage: pypi release
-      script: echo "Deploying to PyPI ..."
+      script:
+        - echo "Deploying to PyPI ..."
+        - sed -i "s/{{ VERSION_FROM_GIT_TAG }}/$(git describe --tags)/g;s/{{ CURRENT_DATE_YEAR }}/$(date +"%Y")/g" setup.py
       deploy:  # deploy (on tag) to PyPI
         provider: pypi
         username: __token__
