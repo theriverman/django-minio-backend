@@ -18,7 +18,8 @@ from urllib3.exceptions import MaxRetryError
 # Local Packages
 from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting
 
-__all__ = ['MinioBackend', 'get_iso_date', 'iso_date_prefix']
+
+__all__ = ['MinioBackend', 'get_iso_date', 'iso_date_prefix', ]
 
 
 def get_iso_date() -> str:

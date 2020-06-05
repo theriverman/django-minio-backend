@@ -19,7 +19,6 @@ def delete_everywhere(model_admin: Union[PublicAttachment, PrivateAttachment],
     del model_admin, request  # We don't need these
     for obj in queryset:
         obj.delete()
-        print(obj)
 
 
 delete_everywhere.short_description = "Delete selected objects in Django and MinIO"

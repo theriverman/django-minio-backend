@@ -17,6 +17,22 @@ INSTALLED_APPS = [
 ]
 ```
 
+If you would like to enable on-start consistency check, install via `DjangoMinioBackendConfig`:
+```python
+INSTALLED_APPS = [
+    '...'
+    'django_minio_backend.apps.DjangoMinioBackendConfig',  # django-minio-backend | https://github.com/theriverman/django-minio-backend
+]
+``` 
+Then add the following parameter to your settings file:
+```python
+MINIO_CONSISTENCY_CHECK_ON_START = True
+```
+
+**Note:** The on-start consistency check equals to manually calling `python manage.py initialize_buckets`. <br>
+It is recommended to turn *off* this feature during development, 
+because this function can noticeably slow down Django's boot time.
+
 3. Add the following parameters to your `settings.py`:
 ```python
 from datetime import timedelta
