@@ -1,4 +1,6 @@
 [![Board Status](https://dev.azure.com/kristofdaja/ce976b79-9da3-4e26-a128-0e9471858160/0d69c064-41f3-4a98-9c49-1623149803d9/_apis/work/boardbadge/4fbdd57f-fc00-4dd6-8f2f-a1ced6cfbb10)](https://dev.azure.com/kristofdaja/ce976b79-9da3-4e26-a128-0e9471858160/_boards/board/t/0d69c064-41f3-4a98-9c49-1623149803d9/Microsoft.RequirementCategory)
+[![Build Status](https://travis-ci.org/theriverman/django-minio-backend.svg?branch=master)](https://travis-ci.org/theriverman/django-minio-backend)
+
 # django-minio-backend
 The `django-minio-backend` provides a wrapper around the 
 [MinIO Python SDK](https://docs.min.io/docs/python-client-quickstart-guide.html).
@@ -82,7 +84,7 @@ For a reference implementation, see [Examples](examples).
 
 ## Compatibility
   * Django 2.0 or later
-  * Python 3.5.0 or later
+  * Python 3.6.0 or later
 
 **Note:** This library relies heavily on [PEP 484 -- Type Hints](https://www.python.org/dev/peps/pep-0484/) 
 which was introduced in *Python 3.5.0*.
