@@ -18,8 +18,9 @@ install:
 
 # command to run tests
 script:
-  - pytest
+  - tests/manage.py test  # Execute Django tests
 
+# deploy (on tag) to PyPI
 deploy:
   provider: pypi
   username: __token__
