@@ -1,3 +1,4 @@
+# language
 language: python
 python:
   - "3.5"
@@ -5,14 +6,19 @@ python:
   - "3.7"
   - "3.8"
 
+# host environment
+os: "linux"
+dist: bionic
+
 # command to install dependencies
 install:
   - pip install pipenv
-  - pipenv install
+  - pipenv lock -r > requirements.txt
+  - pip install -r requirements.txt
 
 # command to run tests
-#script:
-#  - pytest
+script:
+  - pytest
 
 deploy:
   provider: pypi
