@@ -22,9 +22,12 @@ script:
 jobs:
   include:
     - stage: pypi release
+      python: 3.6
       script:
         - echo "Deploying to PyPI ..."
-      before_deploy: ./step_setup-py.bash
+      before_deploy:
+        - chmod +x ./step_version.py
+        - python3 step_version.py
       deploy:  # deploy (on tag) to PyPI
         provider: pypi
         username: __token__
