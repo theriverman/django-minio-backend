@@ -22,7 +22,7 @@ script:
 jobs:
   include:
     - stage: pypi release
-      python: 3.6
+#      python: 3.6
       script:
         - echo "Deploying to PyPI ..."
       before_deploy:
