@@ -18,13 +18,21 @@ INSTALLED_APPS = [
 3. Add the following parameters to your `settings.py`:
 ```python
 from datetime import timedelta
+from typing import List, Tuple
+
 MINIO_ENDPOINT = 'minio.yourcompany.co.uk'
 MINIO_ACCESS_KEY = 'yourMinioAccessKey'
 MINIO_SECRET_KEY = 'yourVeryS3cr3tP4ssw0rd'
 MINIO_USE_HTTPS = True
-MINIO_PRIVATE_BUCKET_NAME = 'my-app-private'
-MINIO_PUBLIC_BUCKET_NAME = 'my-app-public'
-MINIO_URL_EXPIRY_HOURS = timedelta(days=1)
+MINIO_URL_EXPIRY_HOURS = timedelta(days=1)  # Default is 7 days (longest) if not defined
+MINIO_CONSISTENCY_CHECK_ON_START = True
+MINIO_PRIVATE_BUCKETS = [
+    'django-backend-dev-private',
+]
+MINIO_PUBLIC_BUCKETS = [
+    'django-backend-dev-public',
+]
+MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = []
 ```
 
 4. Implement your own Attachment handler and integrate django-minio-backend:
@@ -34,7 +42,8 @@ from django_minio_backend import MinioBackend, iso_date_prefix
 
 # noinspection PyUnresolvedReferences
 class PrivateAttachment(models.Model):   
-    file = models.FileField(verbose_name="Object Upload", storage=MinioBackend(is_public=False),
+    file = models.FileField(verbose_name="Object Upload",
+                            storage=MinioBackend(bucket_name='my-private-bucket'),
                             upload_to=iso_date_prefix)
 ```
 
@@ -53,7 +62,7 @@ It returns a `MinioServerStatus` instance which can be quickly evaluated as bool
 ```python
 from django_minio_backend import MinioBackend
 
-minio_available = MinioBackend().is_minio_available()
+minio_available = MinioBackend('').is_minio_available()  # An empty string is fine this time
 if minio_available:
     print("OK")
 else:
@@ -61,6 +70,12 @@ else:
     print(minio_available.details)
 ```
 
+### Policy Hooks
+You can configure *django-minio-backend* to automatically execute a set of pre-defined policy hooks. <br>
+Policy hooks can be defined in `settings.py` by adding `MINIO_POLICY_HOOKS` which must be list of tuples. <br>
+Policy hooks are automatically picked up by the `initialize_buckets` management command.
+
+For an exemplary policy, see the contents of `def set_bucket_to_public(self)` in models.py.
 
 ### Reference Implementation
 For a reference implementation, see [Examples](examples).

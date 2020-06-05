@@ -1,7 +1,7 @@
 import datetime
-from django.db import models, router
+from django.db import models
+from django.db.models.fields.files import FieldFile
 from django.utils.timezone import utc
-from django.db.models.deletion import Collector
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django_minio_backend import MinioBackend, iso_date_prefix
@@ -20,7 +20,7 @@ class PublicAttachment(models.Model):
         :param file_name_ext: (str) File name + extension. ie.: cat.png OR images/animals/2019/cat.png
         :return: (str) Absolute path to file in Minio Bucket
         """
-        return f"{get_iso_date()}/{self.content_type}/{file_name_ext}"
+        return f"{get_iso_date()}/{self.content_type.name}/{file_name_ext}"
 
     def delete(self, *args, **kwargs):
         """
@@ -49,8 +49,11 @@ class PublicAttachment(models.Model):
     object_id = models.PositiveIntegerField(null=False, blank=False, verbose_name="Related Object's ID")
     content_object = GenericForeignKey("content_type", "object_id")
 
-    file = models.FileField(verbose_name="Object Upload", storage=MinioBackend(is_public=True),
-                            upload_to=iso_date_prefix)
+    file: FieldFile = models.FileField(verbose_name="Object Upload",
+                                       storage=MinioBackend(  # Configure MinioBackend as storage backend here
+                                           bucket_name='django-backend-dev-public',
+                                       ),
+                                       upload_to=iso_date_prefix)
 
 
 class PrivateAttachment(models.Model):
@@ -60,7 +63,7 @@ class PrivateAttachment(models.Model):
         :param file_name_ext: (str) File name + extension. ie.: cat.png OR images/animals/2019/cat.png
         :return: (str) Absolute path to file in Minio Bucket
         """
-        return f"{get_iso_date()}/{self.content_type}/{file_name_ext}"
+        return f"{get_iso_date()}/{self.content_type.name}/{file_name_ext}"
 
     def delete(self, *args, **kwargs):
         """
@@ -89,5 +92,8 @@ class PrivateAttachment(models.Model):
     object_id = models.PositiveIntegerField(null=False, blank=False, verbose_name="Related Object's ID")
     content_object = GenericForeignKey("content_type", "object_id")
 
-    file = models.FileField(verbose_name="Object Upload", storage=MinioBackend(is_public=False),
-                            upload_to=set_file_path_name)
+    file: FieldFile = models.FileField(verbose_name="Object Upload",
+                                       storage=MinioBackend(  # Configure MinioBackend as storage backend here
+                                           bucket_name='django-backend-dev-private',
+                                       ),
+                                       upload_to=set_file_path_name)

@@ -1,8 +1,9 @@
 import urllib3
 from typing import Union, List
+from django.conf import settings
 
 
-__all__ = ['MinioServerStatus', ]
+__all__ = ['MinioServerStatus', 'PrivatePublicMixedError', 'ConfigurationError', 'get_setting', ]
 
 
 class MinioServerStatus:
@@ -31,7 +32,7 @@ class MinioServerStatus:
             return False
         self.status = self._request.status
         self.data = self._request.data.decode() if self._request.data else 'No data available'
-        if self.status == 403:  # The request was a legal request, but the server is refusing to respond to it, therefore, it's running
+        if self.status == 403:  # Request was a legal, but the server refuses to respond to it -> it's running fine
             self._bool = True
         else:
             self._details.append('MinIO is not available.')
@@ -55,3 +56,15 @@ class MinioServerStatus:
         if self.is_available:
             return 'Minio Server Available'
         return 'Minio Server Not Available'
+
+
+class PrivatePublicMixedError(Exception):
+    pass
+
+
+class ConfigurationError(Exception):
+    pass
+
+
+def get_setting(name, default=None):
+    return getattr(settings, name, default)

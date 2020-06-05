@@ -3,10 +3,9 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 from time import mktime
-from typing import Union
+from typing import Union, List
 import urllib3
 # Django packages
-from django.conf import settings
 from django.core.files.storage import Storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.deconstruct import deconstructible
@@ -17,14 +16,9 @@ from minio.definitions import Object
 from minio.error import NoSuchKey, NoSuchBucket
 from urllib3.exceptions import MaxRetryError
 # Local Packages
-from .utils import MinioServerStatus
-
+from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting
 
 __all__ = ['MinioBackend', 'get_iso_date', 'iso_date_prefix']
-
-
-def get_setting(name, default=None):
-    return getattr(settings, name, default)
 
 
 def get_iso_date() -> str:
@@ -38,40 +32,37 @@ def iso_date_prefix(_, file_name_ext: str) -> str:
 
 @deconstructible
 class MinioBackend(Storage):
-    def __init__(self, *args, **kwargs):
+    def __init__(self,
+                 bucket_name: str,
+                 *args,
+                 **kwargs):
+
+        self._BUCKET_NAME: str = bucket_name
         self._META_ARGS = args
         self._META_KWARGS = kwargs
-        self._BUCKET: str = kwargs.get("bucket", "")
-        self.MINIO_ENDPOINT: str = get_setting("MINIO_ENDPOINT")
-        self.MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
-        self.MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
-        self.MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS")
-        self.MINIO_PRIVATE_BUCKET_NAME: str = get_setting("MINIO_PRIVATE_BUCKET_NAME", "")
-        self.MINIO_PUBLIC_BUCKET_NAME: str = get_setting("MINIO_PUBLIC_BUCKET_NAME", "")
-        self.IS_PUBLIC: bool = kwargs.get("is_public", False)
-        self.HTTP_CLIENT: urllib3.poolmanager.PoolManager = kwargs.get("http_client", None)  # https://docs.min.io/docs/python-client-api-reference.html
-        self._client: Union[Minio, None] = None
 
-    def is_minio_available(self) -> MinioServerStatus:
-        if not self.MINIO_ENDPOINT:
-            mss = MinioServerStatus(None)
-            mss.add_message('MINIO_ENDPOINT is not configured in Django settings')
-            return mss
+        self.__CLIENT: Union[Minio, None] = None
+        self.__MINIO_ENDPOINT: str = get_setting("MINIO_ENDPOINT")
+        self.__MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
+        self.__MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
+        self.__MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS")
 
-        c = urllib3.HTTPSConnectionPool(self.MINIO_ENDPOINT, cert_reqs='CERT_NONE', assert_hostname=False)
-        try:
-            r = c.request('GET', '/minio/index.html')
-            return MinioServerStatus(r)
-        except urllib3.exceptions.MaxRetryError:
-            mss = MinioServerStatus(None)
-            mss.add_message(f'Could not open connection to {self.MINIO_ENDPOINT}/minio/index.html ...')
-            return mss
-        except Exception as e:
-            mss = MinioServerStatus(None)
-            mss.add_message(repr(e))
-            return mss
+        self.PRIVATE_BUCKETS: List[str] = get_setting("MINIO_PRIVATE_BUCKETS", [])
+        self.PUBLIC_BUCKETS: List[str] = get_setting("MINIO_PUBLIC_BUCKETS", [])
 
-    # django.core.files.storage.Storage
+        # https://docs.min.io/docs/python-client-api-reference.html
+        self.HTTP_CLIENT: urllib3.poolmanager.PoolManager = kwargs.get("http_client", None)
+
+        bucket_name_intersection: List[str] = list(set(self.PRIVATE_BUCKETS) & set(self.PUBLIC_BUCKETS))
+        if bucket_name_intersection:
+            raise PrivatePublicMixedError(
+                f'One or more buckets have been declared both private and public: {bucket_name_intersection}'
+            )
+
+    """
+        django.core.files.storage.Storage
+    """
+
     def _save(self, file_path_name: str, content: InMemoryUploadedFile):
         """
         Saves file to Minio by implementing Minio.put_object()
@@ -80,13 +71,12 @@ class MinioBackend(Storage):
         :return:
         """
         # Check if bucket exists, create if not
-        if not self.client.bucket_exists(self._BUCKET):
-            self.client.make_bucket(self._BUCKET)
+        self.check_bucket_existence()
 
         # Upload object
-        file_path = Path(file_path_name)  # app name + file.suffix
+        file_path: Path = Path(file_path_name)  # app name + file.suffix
         self.client.put_object(
-            bucket_name=self._BUCKET,
+            bucket_name=self._BUCKET_NAME,
             object_name=file_path.as_posix(),
             data=content,
             length=content.size,
@@ -103,7 +93,7 @@ class MinioBackend(Storage):
     def stat(self, name: str) -> Union[Object, bool]:
         object_name = Path(name).as_posix()
         try:
-            obj = self.client.stat_object(self._BUCKET, object_name=object_name)
+            obj = self.client.stat_object(self._BUCKET_NAME, object_name=object_name)
             return obj
         except (NoSuchKey, NoSuchBucket):
             return False
@@ -119,7 +109,7 @@ class MinioBackend(Storage):
         :param name: File object name
         """
         object_name = Path(name).as_posix()
-        self.client.remove_object(bucket_name=self._BUCKET, object_name=object_name)
+        self.client.remove_object(bucket_name=self._BUCKET_NAME, object_name=object_name)
 
     def exists(self, name: str) -> bool:
         object_name = Path(name).as_posix()
@@ -146,13 +136,13 @@ class MinioBackend(Storage):
         :param name: (str) file path + file name + suffix
         :return: (str) URL to object
         """
-        if self.IS_PUBLIC:
+        if self.is_bucket_public:
             # noinspection PyProtectedMember
-            return f'{self.client._endpoint_url}/{self._BUCKET}/{name}'
+            return f'{self.client._endpoint_url}/{self._BUCKET_NAME}/{name}'
 
         try:
             return self.client.presigned_get_object(
-                bucket_name=self._BUCKET,
+                bucket_name=self._BUCKET_NAME,
                 object_name=name.encode('utf-8'),
                 expires=get_setting("MINIO_URL_EXPIRY_HOURS", timedelta(days=7))  # Default is 7 days
             )
@@ -184,13 +174,43 @@ class MinioBackend(Storage):
         obj = self.stat(name)
         return datetime.fromtimestamp(mktime(obj.last_modified))
 
-    # MinioBackend
+    """
+        MinioBackend
+    """
+
+    @property
+    def bucket(self) -> str:
+        return self._BUCKET_NAME
+
+    @property
+    def is_bucket_public(self) -> bool:
+        return True if self._BUCKET_NAME in self.PUBLIC_BUCKETS else False
+
+    def is_minio_available(self) -> MinioServerStatus:
+        if not self.__MINIO_ENDPOINT:
+            mss = MinioServerStatus(None)
+            mss.add_message('MINIO_ENDPOINT is not configured in Django settings')
+            return mss
+
+        c = urllib3.HTTPSConnectionPool(self.__MINIO_ENDPOINT, cert_reqs='CERT_NONE', assert_hostname=False)
+        try:
+            r = c.request('GET', '/minio/index.html')
+            return MinioServerStatus(r)
+        except urllib3.exceptions.MaxRetryError:
+            mss = MinioServerStatus(None)
+            mss.add_message(f'Could not open connection to {self.__MINIO_ENDPOINT}/minio/index.html ...')
+            return mss
+        except Exception as e:
+            mss = MinioServerStatus(None)
+            mss.add_message(repr(e))
+            return mss
+
     @property
     def client(self) -> Minio:
-        if not self._client:
+        if not self.__CLIENT:
             self.new_client()
-            return self._client
-        return self._client
+            return self.__CLIENT
+        return self.__CLIENT
 
     def new_client(self):
         """
@@ -198,57 +218,58 @@ class MinioBackend(Storage):
         :return:
         """
         # Safety Guards
-        if self._BUCKET and self.IS_PUBLIC:
-            raise AttributeError("You cannot set both `bucket` and `is_public`!")
-        if not self.MINIO_PRIVATE_BUCKET_NAME or not self.MINIO_PUBLIC_BUCKET_NAME:
-            raise AttributeError("MINIO_PRIVATE_BUCKET_NAME or MINIO_PUBLIC_BUCKET_NAME is not configured properly.")
+        if not self.PRIVATE_BUCKETS or not self.PUBLIC_BUCKETS:
+            raise ConfigurationError(
+                'MINIO_PRIVATE_BUCKETS or '
+                'MINIO_PUBLIC_BUCKETS '
+                'is not configured properly in your settings.py (or equivalent)'
+            )
 
-        if self._BUCKET:
-            pass  # We optimistically trust the bucket name here
-        elif self.IS_PUBLIC:
-            self._BUCKET = self.MINIO_PUBLIC_BUCKET_NAME
-        elif not self.IS_PUBLIC:
-            self._BUCKET = self.MINIO_PRIVATE_BUCKET_NAME
-
-        minio_client = Minio(
-            endpoint=self.MINIO_ENDPOINT,
-            access_key=self.MINIO_ACCESS_KEY,
-            secret_key=self.MINIO_SECRET_KEY,
-            secure=self.MINIO_USE_HTTPS,
+        mc = Minio(
+            endpoint=self.__MINIO_ENDPOINT,
+            access_key=self.__MINIO_ACCESS_KEY,
+            secret_key=self.__MINIO_SECRET_KEY,
+            secure=self.__MINIO_USE_HTTPS,
             http_client=self.HTTP_CLIENT,
         )
-        self._client = minio_client
+        self.__CLIENT = mc
 
     # MAINTENANCE
-    def check_bucket_existences(self):  # Execute this handler upon starting Django to make sure buckets exist
-        if not self.client.bucket_exists(self.MINIO_PRIVATE_BUCKET_NAME):
-            self.client.make_bucket(bucket_name=self.MINIO_PRIVATE_BUCKET_NAME)
-        if not self.client.bucket_exists(self.MINIO_PUBLIC_BUCKET_NAME):
-            self.client.make_bucket(bucket_name=self.MINIO_PUBLIC_BUCKET_NAME)
+    def check_bucket_existence(self):
+        if not self.client.bucket_exists(self.bucket):
+            self.client.make_bucket(bucket_name=self.bucket)
 
-    def set_bucket_to_public(self, bucket_name):
-        policy_read_only = {"Version": "2012-10-17",
-                            "Statement": [
-                                {
-                                    "Sid": "",
-                                    "Effect": "Allow",
-                                    "Principal": {"AWS": "*"},
-                                    "Action": "s3:GetBucketLocation",
-                                    "Resource": f"arn:aws:s3:::{bucket_name}"
-                                },
-                                {
-                                    "Sid": "",
-                                    "Effect": "Allow",
-                                    "Principal": {"AWS": "*"},
-                                    "Action": "s3:ListBucket",
-                                    "Resource": f"arn:aws:s3:::{bucket_name}"
-                                },
-                                {
-                                    "Sid": "",
-                                    "Effect": "Allow",
-                                    "Principal": {"AWS": "*"},
-                                    "Action": "s3:GetObject",
-                                    "Resource": f"arn:aws:s3:::{bucket_name}/*"
-                                }
-                            ]}
-        self.client.set_bucket_policy(bucket_name=bucket_name, policy=json.dumps(policy_read_only))
+    def check_bucket_existences(self):  # Execute this handler upon starting Django to make sure buckets exist
+        for bucket in [*self.PUBLIC_BUCKETS, *self.PRIVATE_BUCKETS]:
+            if not self.client.bucket_exists(bucket):
+                self.client.make_bucket(bucket_name=bucket)
+
+    def set_bucket_policy(self, bucket: str, policy: dict):
+        self.client.set_bucket_policy(bucket_name=bucket, policy=json.dumps(policy))
+
+    def set_bucket_to_public(self):
+        policy_public_read_only = {"Version": "2012-10-17",
+                                   "Statement": [
+                                       {
+                                           "Sid": "",
+                                           "Effect": "Allow",
+                                           "Principal": {"AWS": "*"},
+                                           "Action": "s3:GetBucketLocation",
+                                           "Resource": f"arn:aws:s3:::{self.bucket}"
+                                       },
+                                       {
+                                           "Sid": "",
+                                           "Effect": "Allow",
+                                           "Principal": {"AWS": "*"},
+                                           "Action": "s3:ListBucket",
+                                           "Resource": f"arn:aws:s3:::{self.bucket}"
+                                       },
+                                       {
+                                           "Sid": "",
+                                           "Effect": "Allow",
+                                           "Principal": {"AWS": "*"},
+                                           "Action": "s3:GetObject",
+                                           "Resource": f"arn:aws:s3:::{self.bucket}/*"
+                                       }
+                                   ]}
+        self.set_bucket_policy(self.bucket, policy_public_read_only)
