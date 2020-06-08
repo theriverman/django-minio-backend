@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.org/theriverman/django-minio-backend.svg?branch=master)](https://travis-ci.org/theriverman/django-minio-backend)
 
 # django-minio-backend
-The `django-minio-backend` provides a wrapper around the 
+The **django-minio-backend** provides a wrapper around the 
 [MinIO Python SDK](https://docs.min.io/docs/python-client-quickstart-guide.html).
 
 ## Integration
@@ -30,8 +30,7 @@ MINIO_CONSISTENCY_CHECK_ON_START = True
 ```
 
 **Note:** The on-start consistency check equals to manually calling `python manage.py initialize_buckets`. <br>
-It is recommended to turn *off* this feature during development, 
-by setting `MINIO_CONSISTENCY_CHECK_ON_START` to `False`, 
+It is recommended to turn *off* this feature during development by setting `MINIO_CONSISTENCY_CHECK_ON_START` to `False`, 
 because this operation can noticeably slow down Django's boot time when many buckets are configured.
 
 3. Add the following parameters to your `settings.py`:
@@ -54,12 +53,11 @@ MINIO_PUBLIC_BUCKETS = [
 MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = []
 ```
 
-4. Implement your own Attachment handler and integrate django-minio-backend:
+4. Implement your own Attachment handler and integrate **django-minio-backend**:
 ```python
 from django.db import models
 from django_minio_backend import MinioBackend, iso_date_prefix
 
-# noinspection PyUnresolvedReferences
 class PrivateAttachment(models.Model):   
     file = models.FileField(verbose_name="Object Upload",
                             storage=MinioBackend(bucket_name='django-backend-dev-private'),
@@ -67,11 +65,13 @@ class PrivateAttachment(models.Model):
 ```
 
 5. Initialize buckets & set public policy (OPTIONAL):<br>
-    This `django-admin` command creates both the private and public buckets in case one of them does not exists
-    and sets the public bucket's privacy policy from private(default) to public.<br>
-    `python manage.py initialize_buckets`
-    
-    Code reference: [initialize_buckets.py](django_minio_backend/management/commands/initialize_buckets.py).
+This `django-admin` command creates both the private and public buckets in case one of them does not exists,
+and sets the *public* bucket's privacy policy from `private`(default) to `public`.<br>
+```bash
+python manage.py initialize_buckets
+```
+
+Code reference: [initialize_buckets.py](django_minio_backend/management/commands/initialize_buckets.py).
 
 ### Health Check
 To check the connection link between Django and MinIO, use the provided `MinioBackend.is_minio_available()` method.<br>
@@ -90,8 +90,8 @@ else:
 ```
 
 ### Policy Hooks
-You can configure *django-minio-backend* to automatically execute a set of pre-defined policy hooks. <br>
-Policy hooks can be defined in `settings.py` by adding `MINIO_POLICY_HOOKS` which must be list of tuples. <br>
+You can configure **django-minio-backend** to automatically execute a set of pre-defined policy hooks. <br>
+Policy hooks can be defined in `settings.py` by adding `MINIO_POLICY_HOOKS` which must be a list of tuples. <br>
 Policy hooks are automatically picked up by the `initialize_buckets` management command.
 
 For an exemplary policy, see the contents of `def set_bucket_to_public(self)` in models.py.
