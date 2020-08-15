@@ -116,30 +116,30 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 
-dummy_bela_policy = {"Version": "2012-10-17",
-                     "Statement": [
-                         {
-                             "Sid": "",
-                             "Effect": "Allow",
-                             "Principal": {"AWS": "*"},
-                             "Action": "s3:GetBucketLocation",
-                             "Resource": f"arn:aws:s3:::django-backend-dev-private"
-                         },
-                         {
-                             "Sid": "",
-                             "Effect": "Allow",
-                             "Principal": {"AWS": "*"},
-                             "Action": "s3:ListBucket",
-                             "Resource": f"arn:aws:s3:::django-backend-dev-private"
-                         },
-                         {
-                             "Sid": "",
-                             "Effect": "Allow",
-                             "Principal": {"AWS": "*"},
-                             "Action": "s3:GetObject",
-                             "Resource": f"arn:aws:s3:::django-backend-dev-private/*"
-                         }
-                     ]}
+dummy_policy = {"Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Sid": "",
+                        "Effect": "Allow",
+                        "Principal": {"AWS": "*"},
+                        "Action": "s3:GetBucketLocation",
+                        "Resource": f"arn:aws:s3:::django-backend-dev-private"
+                    },
+                    {
+                        "Sid": "",
+                        "Effect": "Allow",
+                        "Principal": {"AWS": "*"},
+                        "Action": "s3:ListBucket",
+                        "Resource": f"arn:aws:s3:::django-backend-dev-private"
+                    },
+                    {
+                        "Sid": "",
+                        "Effect": "Allow",
+                        "Principal": {"AWS": "*"},
+                        "Action": "s3:GetObject",
+                        "Resource": f"arn:aws:s3:::django-backend-dev-private/*"
+                    }
+                ]}
 
 STATIC_URL = '/static/'
 
@@ -154,57 +154,9 @@ MINIO_PUBLIC_BUCKETS = [
     'django-backend-dev-public',
     "t5p2g08k31",
     "7xi7lx9rjh",
-    "nj5cezae8d",
-    "podgzhltmc",
-    "cpx0o1c51d",
-    "6kpnw6yl0o",
-    "14rg1wbryp",
-    "khjeix48zk",
-    "7ctx342c27",
-    "gbkc35uv5b",
-    "q9f4vsei4j",
-    "8gpvyjq6gf",
-    "1zbg39lkeb",
-    "cq8yj4xhat",
-    "vgneqglpt3",
-    "pu0c84q70z",
-    "cist4bebgu",
-    "v4o39akq0v",
-    "7fqvdjqnjw",
-    "2jkm2uis97",
-    "jq02np2gue",
-    "vpq9nqs1qk",
-    "fc4m4sa4jj",
-    "ddut6j4htq",
-    "jk5bm6xo8s",
-    "qgdezflrq7",
-    "0cte5rglkw",
-    "wsmet433ih",
-    "1ihlulbydg",
-    "kdzk6qbhme",
-    "b4m15d4l0q",
-    "s0e6rm0mdm",
-    "8k44gd31a0",
-    "bld7gzrfhv",
-    "y2p0u7g460",
-    "nl5f293glx",
-    "iapj8ftqqk",
-    "3d7oqln4fy",
-    "wwifrkdbax",
-    "b6jwyg0g8x",
-    "jow09upyny",
-    "7rf6vm9htk",
-    "b323s0b3hj",
-    "qfbxthfurl",
-    "si3g1mdtuf",
-    "l1hxyysbcd",
-    "dlrq5svblz",
-    "fxa94wywqi",
-    "0l8q7ril17",
-    "b4sb924gnx",
 ]
 MINIO_URL_EXPIRY_HOURS = timedelta(days=1)  # Default is 7 days (longest) if not defined
-MINIO_CONSISTENCY_CHECK_ON_START = False
+MINIO_CONSISTENCY_CHECK_ON_START = True
 MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = [
-    # ('django-backend-dev-private', dummy_bela_policy)
+    # ('django-backend-dev-private', dummy_policy)
 ]

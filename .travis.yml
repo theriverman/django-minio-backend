@@ -13,6 +13,7 @@ dist: bionic
 install:
   - pip install pipenv
   - pipenv lock -r > requirements.txt
+  - pipenv lock --dev -r >> requirements.txt
   - pip install -r requirements.txt
 
 # command to run tests

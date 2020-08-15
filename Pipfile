@@ -4,7 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-django = "==3.0.6"
+django = "==3.0.7"
 pillow = "*"
 
 [packages]
