@@ -25,6 +25,7 @@ jobs:
     - stage: pypi release
       script:
         - echo "Deploying to PyPI ..."
+        - python freeze_git_tag.py --silent
       deploy:  # deploy (on tag) to PyPI
         provider: pypi
         username: __token__
