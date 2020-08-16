@@ -16,7 +16,7 @@ if __name__ == '__main__':
     git_tag = subprocess.check_output(['git', 'describe', '--tags']).strip().decode('utf-8')
     pattern = re.compile(r"CURRENT_GIT_TAG = '(v[1-9.]+)'")
 
-    if '--silent' not in sys.argv:
+    if '--skip-confirm' not in sys.argv:
         print('----------------------------------------------')
         print(f'Tag {git_tag} will be written to setup.py')
         input('Press ENTER to continue or Ctrl+C to stop...')
@@ -29,5 +29,6 @@ if __name__ == '__main__':
             new_contents = re.sub(pattern, f"CURRENT_GIT_TAG = '{git_tag}'", old_contents)
             f.write(new_contents)
             f.truncate()
+            print(f'Tag {git_tag} has been written to setup.py')
         except (OSError, ValueError):
             f.write(old_contents)

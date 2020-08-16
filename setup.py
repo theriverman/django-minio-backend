@@ -11,6 +11,8 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 CURRENT_GIT_TAG = 'v2.2.0'
 year = datetime.datetime.now().year
 
+print(f'setup.py :: Using git tag {CURRENT_GIT_TAG}')
+
 setup(
     name='django-minio-backend',
     version=CURRENT_GIT_TAG,
