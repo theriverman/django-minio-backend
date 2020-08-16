@@ -110,3 +110,6 @@ venv.bak/
 # Developer Environment
 devPlatform
 requirements.txt
+
+# macOS
+.DS_Store

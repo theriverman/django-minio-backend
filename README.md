@@ -7,7 +7,9 @@ The **django-minio-backend** provides a wrapper around the
 
 ## Integration
 1. Get and install the package:
-    `pip install django-minio-backend`
+```bash
+pip install django-minio-backend
+```
 
 2. Add `django_minio_backend` to `INSTALLED_APPS`:
 ```python
@@ -64,7 +66,7 @@ class PrivateAttachment(models.Model):
                             upload_to=iso_date_prefix)
 ```
 
-5. Initialize buckets & set public policy (OPTIONAL):<br>
+5. Initialize the buckets & set their public policy (OPTIONAL):<br>
 This `django-admin` command creates both the private and public buckets in case one of them does not exists,
 and sets the *public* bucket's privacy policy from `private`(default) to `public`.<br>
 ```bash
@@ -96,6 +98,11 @@ Policy hooks are automatically picked up by the `initialize_buckets` management 
 
 For an exemplary policy, see the contents of `def set_bucket_to_public(self)` in models.py.
 
+### Consistency Check On Start
+When enabled, the `initialize_buckets` management command gets called automatically when Django starts. <br>
+This command connects to the configured minIO server and checks if all buckets defined in `settings.py`. <br>
+In case a bucket is missing or its configuration differs, it gets created and corrected.
+
 ### Reference Implementation
 For a reference implementation, see [Examples](examples).
 
@@ -109,6 +116,34 @@ which was introduced in *Python 3.5.0*.
 ## Contribution
 To build a new package, execute the following command:
 `python setup.py sdist`
+
+## Local Test Environment
+To setup your local test environment, execute the following steps:
+1. Clone the repository
+```bash
+git clone git@github.com:theriverman/django-minio-backend.git
+```
+2. Move to `example_app`:
+```bash
+cd django-minio-backend/example_app
+```
+3. Create the virtual environment:
+```bash
+pipenv install --dev
+```
+**Note:** On Windows, you might be required to move to the parent directory (`cd ..`) and execute the above command there.
+3. Activate the virtual environment (if not active yet):
+```bash
+pipenv shell
+```
+4. Apply migrations:
+```bash
+python manage.py migrate
+```
+5. Start Django
+```bash
+python manage.py runserver
+```
 
 ## Copyright
   * theriverman/django-minio-backend licensed under the MIT License

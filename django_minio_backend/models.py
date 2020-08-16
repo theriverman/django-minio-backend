@@ -94,7 +94,7 @@ class MinioBackend(Storage):
         """
         Implements the Storage._open(name,mode='rb') method
         :param name (str): object_name [path to file excluding bucket name which is implied]
-        :kwargs (dict): pass on to the underlying minIO client's get_object() method
+        :kwargs (dict): passed on to the underlying minIO client's get_object() method
         """
         resp: urllib3.response.HTTPResponse = urllib3.response.HTTPResponse()
 
