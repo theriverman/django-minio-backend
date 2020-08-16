@@ -27,6 +27,7 @@ jobs:
         - echo "Deploying to PyPI ..."
         - python freeze_git_tag.py --silent
       deploy:  # deploy (on tag) to PyPI
+        skip_cleanup: true  # The git tag gets written to setup.py just before PyPI deployment
         provider: pypi
         username: __token__
         password:
