@@ -5,6 +5,7 @@ from pathlib import Path
 from time import mktime
 from typing import Union, List
 import urllib3
+import mimetypes
 # Django packages
 from django.core.files.storage import Storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -33,6 +34,12 @@ def iso_date_prefix(_, file_name_ext: str) -> str:
 
 @deconstructible
 class MinioBackend(Storage):
+    """
+    :param bucket_name (str): The bucket's name where file(s) will be stored
+    :arg *args: An arbitrary number of arguments. Stored in the self._META_ARGS class field
+    :arg **kwargs: An arbitrary number of key-value arguments. Stored in the self._META_KWARGS class field
+        Through self._META_KWARGS, the "metadata", "sse" and "progress" fields can be set for the underlying put_object() MinIO SDK method
+    """
     def __init__(self,
                  bucket_name: str,
                  *args,
@@ -41,6 +48,8 @@ class MinioBackend(Storage):
         self._BUCKET_NAME: str = bucket_name
         self._META_ARGS = args
         self._META_KWARGS = kwargs
+
+        self._REPLACE_EXISTING = kwargs.get('replace_existing', False)
 
         self.__CLIENT: Union[Minio, None] = None
         self.__MINIO_ENDPOINT: str = get_setting("MINIO_ENDPOINT")
@@ -64,7 +73,7 @@ class MinioBackend(Storage):
         django.core.files.storage.Storage
     """
 
-    def _save(self, file_path_name: str, content: InMemoryUploadedFile):
+    def _save(self, file_path_name: str, content: InMemoryUploadedFile) -> str:
         """
         Saves file to Minio by implementing Minio.put_object()
         :param file_path_name (str): Path to file + file name + file extension | ie.: images/2018-12-31/cat.png
@@ -74,6 +83,10 @@ class MinioBackend(Storage):
         # Check if bucket exists, create if not
         self.check_bucket_existence()
 
+        # Check if object with name already exists; delete if so
+        if self._REPLACE_EXISTING and self.stat(file_path_name):
+            self.delete(file_path_name)
+
         # Upload object
         file_path: Path = Path(file_path_name)  # app name + file.suffix
         self.client.put_object(
@@ -81,10 +94,10 @@ class MinioBackend(Storage):
             object_name=file_path.as_posix(),
             data=content,
             length=content.size,
-            content_type=content.content_type,
-            metadata=None,
-            sse=None,
-            progress=None
+            content_type=self._guess_content_type(file_path_name, content),
+            metadata=self._META_KWARGS.get('metadata', None),
+            sse=self._META_KWARGS.get('sse', None),
+            progress=self._META_KWARGS.get('progress', None),
         )
         return file_path.as_posix()
 
@@ -174,6 +187,15 @@ class MinioBackend(Storage):
         """
         obj = self.stat(name)
         return datetime.fromtimestamp(mktime(obj.last_modified))
+
+    @staticmethod
+    def _guess_content_type(file_path_name: str, content: InMemoryUploadedFile):
+        if hasattr(content, 'content_type'):
+            return content.content_type
+        guess = mimetypes.guess_type(file_path_name)[0]
+        if guess is None:
+            return 'application/octet-stream'  # default
+        return guess
 
     """
         MinioBackend
