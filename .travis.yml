@@ -5,6 +5,7 @@ python:
   - "3.6"
   - "3.7"
   - "3.8"
+  - "3.9"
 
 # host environment
 os: linux
@@ -31,4 +32,5 @@ deploy:
     secure: r8e1zT7bJUitQ1fj7vw+WpuijhcByCA1NkLsDEudf6ZyAmRLQuEB0QuigBM4SvpE7xycR7CWI9UAa+yyxWVmSp9qZyCPL6rwSFmKgOmFHMIwywisK4XhyqIyM+4eY21FKqm8pUm0X8W2u/TbIvZITkp0/tl1ICvB+QSTCPWKnp3/AhVcP2ge0YEQIdOBO9OvcU9eyDy/8WYJKgmbpJxAM8Bsnn5+sGJOk6PUW2+yQpgOYkkHGSXxpGvlJmlRzJlYjj1X/kFqEJ3Qutm0pVmO+aygCMC7ZByFJ6CyD7JHIXIADAihLfX7j3do/MNZRBIfCSPIfPDvkAbzNOZ7jQ+tVptEqAT6YMBLpSbSY+kBvdRSmGSGDC0fyTaThVcnm6RuWlqCM6Pedo6Cnt5b2cqdOQRvHHK5K4KOCWucqVH/zsCtjIltEMU2ATReuLj0KB9dxoCQarFmqDIVc8B3kLVInEPWblO3ayf9LJUtAGOt4Vx203muQG7iSS9QviHpfIVg42j9eA9GcHXlPCJumbdkcV4atn6KEreF/Yqar8xo6G2Nrx/xC7fF+wtAQrTHMwS1i9bVKFODT8ULD1k/3s64F4wyDcINY7gphh7/H9EHiViNjpQXeHKWfVbM+vg1ydxmuGJGYOmB2OuzI6KBO949JUrsGc85p8ft5GWWQnMBScM=
   on:
     tags: true
+    python: '3.9'
   distributions: "sdist"
