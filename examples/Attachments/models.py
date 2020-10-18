@@ -1,3 +1,4 @@
+import uuid
 import datetime
 from django.db import models
 from django.db.models.fields.files import FieldFile
@@ -10,6 +11,14 @@ from django_minio_backend import MinioBackend, iso_date_prefix
 def get_iso_date() -> str:
     now = datetime.datetime.utcnow().replace(tzinfo=utc)
     return f"{now.year}-{now.month}-{now.day}"
+
+
+class Image(models.Model):
+    """
+    This is just for uploaded image
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    image = models.ImageField(upload_to=iso_date_prefix, storage=MinioBackend(bucket_name='django-backend-dev-public'))
 
 
 # Create your models here.

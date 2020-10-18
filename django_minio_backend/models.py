@@ -1,24 +1,25 @@
 # Standard python packages
+import io
 import json
-from datetime import datetime, timedelta
-from pathlib import Path
+import urllib3
 from time import mktime
+from pathlib import Path
 from typing import Union, List
 import urllib3
 import mimetypes
 # Django packages
+from django.core.files import File
 from django.core.files.storage import Storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.deconstruct import deconstructible
 from django.utils.timezone import utc
 # Third-party (MinIO) packages
+import minio.error
+import minio.definitions
 from minio import Minio
-from minio.definitions import Object
-from minio.error import NoSuchKey, NoSuchBucket
-from urllib3.exceptions import MaxRetryError
+
 # Local Packages
 from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting
-
 
 __all__ = ['MinioBackend', 'get_iso_date', 'iso_date_prefix', ]
 
@@ -101,17 +102,32 @@ class MinioBackend(Storage):
         )
         return file_path.as_posix()
 
-    def _open(self, bucket_name, object_name, request_headers=None, sse=None):
-        return self.client.get_object(bucket_name, object_name, request_headers, sse)
+    def _open(self, object_name, mode='rb', **kwargs):
+        """
+        Implements the Storage._open(name,mode='rb') method
+        :param name (str): object_name [path to file excluding bucket name which is implied]
+        :kwargs (dict): passed on to the underlying minIO client's get_object() method
+        """
+        resp: urllib3.response.HTTPResponse = urllib3.response.HTTPResponse()
 
-    def stat(self, name: str) -> Union[Object, bool]:
+        if mode != 'rb':
+            raise ValueError('Files retrieved from minIO are read-only. Use save() method to override contents')
+        try:
+            resp = self.client.get_object(self._BUCKET_NAME, object_name, kwargs)
+            file = File(file=io.BytesIO(resp.read()), name=object_name)
+        finally:
+            resp.close()
+            resp.release_conn()
+        return file
+
+    def stat(self, name: str) -> Union[minio.definitions.Object, bool]:
         object_name = Path(name).as_posix()
         try:
             obj = self.client.stat_object(self._BUCKET_NAME, object_name=object_name)
             return obj
-        except (NoSuchKey, NoSuchBucket):
+        except (minio.error.NoSuchKey, minio.error.NoSuchBucket):
             return False
-        except MaxRetryError:
+        except urllib3.exceptions.MaxRetryError:
             return False
 
     def delete(self, name: str):
@@ -160,7 +176,7 @@ class MinioBackend(Storage):
                 object_name=name.encode('utf-8'),
                 expires=get_setting("MINIO_URL_EXPIRY_HOURS", timedelta(days=7))  # Default is 7 days
             )
-        except MaxRetryError:
+        except urllib3.exceptions.MaxRetryError:
             raise ConnectionError("Couldn't connect to Minio. Check django_minio_backend parameters in Django-Settings")
 
     def path(self, name):

@@ -2,7 +2,7 @@ from typing import Union
 from django.db.models.query import QuerySet
 from django.contrib import admin
 from django.core.handlers.wsgi import WSGIRequest
-from .models import PublicAttachment, PrivateAttachment
+from .models import PublicAttachment, PrivateAttachment, Image
 
 
 # https://docs.djangoproject.com/en/2.2/ref/contrib/admin/actions/#writing-action-functions
@@ -22,6 +22,14 @@ def delete_everywhere(model_admin: Union[PublicAttachment, PrivateAttachment],
 
 
 delete_everywhere.short_description = "Delete selected objects in Django and MinIO"
+
+
+@admin.register(Image)
+class ImageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'image',)
+    readonly_fields = ('id', )
+    model = Image
+    actions = [delete_everywhere, ]
 
 
 # Register your models here.
