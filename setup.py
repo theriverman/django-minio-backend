@@ -8,7 +8,7 @@ with open("README.md", "r") as readme_file:
 # allow setup.py to be run from any path
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
-CURRENT_GIT_TAG = 'v2.2.5'
+CURRENT_GIT_TAG = 'v2.3.0'
 year = datetime.datetime.now().year
 
 print(f'setup.py :: Using git tag {CURRENT_GIT_TAG}')
