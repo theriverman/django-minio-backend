@@ -107,9 +107,5 @@ venv.bak/
 # PyCharm
 .idea
 
-# Developer Environment
-devPlatform
-requirements.txt
-
 # macOS
 .DS_Store
