@@ -83,7 +83,7 @@ class MinioBackend(Storage):
             object_name=file_path.as_posix(),
             data=content,
             length=content.size,
-            content_type=content.content_type,
+            content_type=content.content_type if hasattr(content, 'content_type') else 'application/octet-stream',
             metadata=None,
             sse=None,
             progress=None

@@ -2,8 +2,6 @@
 language: python
 cache: pip
 python:
-  - "3.6"
-  - "3.7"
   - "3.8"
 
 # host environment
@@ -12,9 +10,6 @@ dist: bionic
 
 # command to install dependencies
 install:
-  - pip install pipenv
-  - pipenv lock -r > requirements.txt
-  - pipenv lock --dev -r >> requirements.txt
   - pip install -r requirements.txt
 
 # command to run tests

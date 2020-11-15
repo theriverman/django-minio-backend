@@ -17,6 +17,7 @@ class Image(models.Model):
     """
     This is just for uploaded image
     """
+    objects = models.Manager()
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     image = models.ImageField(upload_to=iso_date_prefix, storage=MinioBackend(bucket_name='django-backend-dev-public'))
 

@@ -96,7 +96,9 @@ You can configure **django-minio-backend** to automatically execute a set of pre
 Policy hooks can be defined in `settings.py` by adding `MINIO_POLICY_HOOKS` which must be a list of tuples. <br>
 Policy hooks are automatically picked up by the `initialize_buckets` management command.
 
-For an exemplary policy, see the contents of `def set_bucket_to_public(self)` in models.py.
+For an exemplary policy, see the implementation of `def set_bucket_to_public(self)` 
+in [django_minio_backend/models.py](django_minio_backend/models.py) or the contents 
+of [examples/policy_hook.example.py](examples/policy_hook.example.py).
 
 ### Consistency Check On Start
 When enabled, the `initialize_buckets` management command gets called automatically when Django starts. <br>
