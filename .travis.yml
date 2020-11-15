@@ -15,7 +15,7 @@ install:
 
 # command to run tests
 script:
-  - tests/manage.py test  # Execute Django tests
+  - python manage.py test  # Execute Django tests
 
 # Deploy to PyPI (on tag)
 deploy:

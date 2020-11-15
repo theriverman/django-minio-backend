@@ -9,31 +9,31 @@ When you're finished with your changes, please open a pull request!
 # Development Environment
 Execute the following steps to prepare your development environment:
 1. Clone the library:
-```bash
-git clone https://github.com/theriverman/django-minio-backend.git
-cd django-minio-backend
-``` 
+    ```bash
+    git clone https://github.com/theriverman/django-minio-backend.git
+    cd django-minio-backend
+    ```
 1. Create a virtual environment and activate it:
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
+    ```
 1. Install Python Dependencies:
-```bash
-pip install -r requirements.txt
-```
+    ```bash
+    pip install -r requirements.txt
+    ```
 1. Execute Django Migrations:
-```bash
-python manage.py migrate
-```
+    ```bash
+    python manage.py migrate
+    ```
 1. Create Admin Account (optional):
-```bash
-python manage.py createsuperuser
-```
+    ```bash
+    python manage.py createsuperuser
+    ```
 1. Run the Project:
-```bash
-python manage.py runserver
-```
+    ```bash
+    python manage.py runserver
+    ```
 
 # Testing
 You can run tests by executing the following command (in the repository root):
