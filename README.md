@@ -116,36 +116,7 @@ For a reference implementation, see [Examples](examples).
 which was introduced in *Python 3.5.0*.
 
 ## Contribution
-To build a new package, execute the following command:
-`python setup.py sdist`
-
-## Local Test Environment
-To setup your local test environment, execute the following steps:
-1. Clone the repository
-```bash
-git clone git@github.com:theriverman/django-minio-backend.git
-```
-2. Move to `example_app`:
-```bash
-cd django-minio-backend/example_app
-```
-3. Create the virtual environment:
-```bash
-pipenv install --dev
-```
-**Note:** On Windows, you might be required to move to the parent directory (`cd ..`) and execute the above command there.
-3. Activate the virtual environment (if not active yet):
-```bash
-pipenv shell
-```
-4. Apply migrations:
-```bash
-python manage.py migrate
-```
-5. Start Django
-```bash
-python manage.py runserver
-```
+Please find the details in [CONTRIBUTE.md](CONTRIBUTE.md)
 
 ## Copyright
   * theriverman/django-minio-backend licensed under the MIT License
