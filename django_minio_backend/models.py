@@ -1,9 +1,8 @@
 # Standard python packages
 import io
 import json
-import urllib3
 from time import mktime
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Union, List
 import urllib3
@@ -38,8 +37,10 @@ class MinioBackend(Storage):
     """
     :param bucket_name (str): The bucket's name where file(s) will be stored
     :arg *args: An arbitrary number of arguments. Stored in the self._META_ARGS class field
-    :arg **kwargs: An arbitrary number of key-value arguments. Stored in the self._META_KWARGS class field
-        Through self._META_KWARGS, the "metadata", "sse" and "progress" fields can be set for the underlying put_object() MinIO SDK method
+    :arg **kwargs: An arbitrary number of key-value arguments.
+        Stored in the self._META_KWARGS class field
+        Through self._META_KWARGS, the "metadata", "sse" and "progress" fields can be set
+        for the underlying put_object() MinIO SDK method
     """
     def __init__(self,
                  bucket_name: str,
