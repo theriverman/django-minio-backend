@@ -232,7 +232,10 @@ class MinioBackend(Storage):
             mss.add_message('MINIO_ENDPOINT is not configured in Django settings')
             return mss
 
-        c = urllib3.HTTPSConnectionPool(self.__MINIO_ENDPOINT, cert_reqs='CERT_NONE', assert_hostname=False)
+        if self.__MINIO_USE_HTTPS:
+            c = urllib3.HTTPSConnectionPool(self.__MINIO_ENDPOINT, cert_reqs='CERT_NONE', assert_hostname=False)
+        else:
+            c = urllib3.HTTPConnectionPool(self.__MINIO_ENDPOINT)
         try:
             r = c.request('GET', '/minio/index.html')
             return MinioServerStatus(r)
