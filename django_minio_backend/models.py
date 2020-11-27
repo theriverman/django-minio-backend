@@ -1,23 +1,25 @@
-# Standard python packages
 import io
 import json
-from time import mktime
+import mimetypes
+import ssl
 from datetime import datetime, timedelta
 from pathlib import Path
+from time import mktime
 from typing import Union, List
+
+# noinspection PyPackageRequirements minIO_requirement
+import certifi
+import minio.definitions
+import minio.error
+# noinspection PyPackageRequirements minIO_requirement
 import urllib3
-import mimetypes
-# Django packages
 from django.core.files import File
 from django.core.files.storage import Storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.deconstruct import deconstructible
 from django.utils.timezone import utc
-# Third-party (MinIO) packages
-import minio.error
-import minio.definitions
 from minio import Minio
-# Local Packages
+
 from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting
 
 __all__ = ['MinioBackend', 'get_iso_date', 'iso_date_prefix', ]
@@ -42,6 +44,7 @@ class MinioBackend(Storage):
         Through self._META_KWARGS, the "metadata", "sse" and "progress" fields can be set
         for the underlying put_object() MinIO SDK method
     """
+
     def __init__(self,
                  bucket_name: str,
                  *args,
@@ -232,18 +235,20 @@ class MinioBackend(Storage):
             mss.add_message('MINIO_ENDPOINT is not configured in Django settings')
             return mss
 
-        c = urllib3.HTTPSConnectionPool(self.__MINIO_ENDPOINT, cert_reqs='CERT_NONE', assert_hostname=False)
-        try:
-            r = c.request('GET', '/minio/index.html')
-            return MinioServerStatus(r)
-        except urllib3.exceptions.MaxRetryError:
-            mss = MinioServerStatus(None)
-            mss.add_message(f'Could not open connection to {self.__MINIO_ENDPOINT}/minio/index.html ...')
-            return mss
-        except Exception as e:
-            mss = MinioServerStatus(None)
-            mss.add_message(repr(e))
-            return mss
+        with urllib3.PoolManager(cert_reqs=ssl.CERT_REQUIRED, ca_certs=certifi.where()) as http:
+            try:
+                scheme = "https" if self.__MINIO_USE_HTTPS else "http"
+                r = http.request('GET', f'{scheme}://{self.__MINIO_ENDPOINT}/minio/index.html')
+                return MinioServerStatus(r)
+            except urllib3.exceptions.MaxRetryError as e:
+                mss = MinioServerStatus(None)
+                mss.add_message(f'Could not open connection to {self.__MINIO_ENDPOINT}/minio/index.html\n'
+                                f'Reason: {e}')
+                return mss
+            except Exception as e:
+                mss = MinioServerStatus(None)
+                mss.add_message(repr(e))
+                return mss
 
     @property
     def client(self) -> Minio:
