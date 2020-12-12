@@ -2,8 +2,6 @@ name: publish-py-dist-to-pypi
 
 on:
   push:
-    branches:
-      - master
     tags:
       - v**
 

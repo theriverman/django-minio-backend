@@ -109,8 +109,9 @@ In case a bucket is missing or its configuration differs, it gets created and co
 For a reference implementation, see [Examples](examples).
 
 ## Compatibility
-  * Django 2.0 or later
+  * Django 2.2 or later
   * Python 3.6.0 or later
+  * MinIO SDK 7.0.0 or later
 
 **Note:** This library relies heavily on [PEP 484 -- Type Hints](https://www.python.org/dev/peps/pep-0484/) 
 which was introduced in *Python 3.5.0*.
