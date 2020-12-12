@@ -24,7 +24,6 @@ jobs:
         setup.py
         bdist_wheel
         sdist
-        --formats=gztar,zip
     - name: Publish distribution 📦 to Test PyPI
       if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master

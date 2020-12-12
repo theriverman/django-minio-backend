@@ -91,34 +91,28 @@ def write_release_version(version):
 
 def get_git_version():
     # Read in the version that's currently in RELEASE-VERSION.
-
     release_version = read_release_version()
 
     # First try to get the current version using “git describe”.
-
     version = call_git_describe()
     if is_dirty():
         version += "-dirty"
 
     # If that doesn't work, fall back on the value that's in
     # RELEASE-VERSION.
-
     if version is None:
         version = release_version
 
     # If we still don't have anything, that's an error.
-
     if version is None:
         raise ValueError("Cannot find the version number!")
 
     # If the current version is different from what's in the
     # RELEASE-VERSION file, update the file to be current.
-
     if version != release_version:
         write_release_version(version)
 
     # Finally, return the current version.
-
     return version
 
 
