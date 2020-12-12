@@ -9,8 +9,10 @@ from typing import Union, List
 
 # noinspection PyPackageRequirements minIO_requirement
 import certifi
-import minio.definitions
+import minio
+import minio.datatypes
 import minio.error
+import minio.helpers
 # noinspection PyPackageRequirements minIO_requirement
 import urllib3
 from django.core.files import File
@@ -18,7 +20,6 @@ from django.core.files.storage import Storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.deconstruct import deconstructible
 from django.utils.timezone import utc
-from minio import Minio
 
 from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting
 
@@ -56,11 +57,13 @@ class MinioBackend(Storage):
 
         self._REPLACE_EXISTING = kwargs.get('replace_existing', False)
 
-        self.__CLIENT: Union[Minio, None] = None
+        self.__CLIENT: Union[minio.Minio, None] = None
         self.__MINIO_ENDPOINT: str = get_setting("MINIO_ENDPOINT")
         self.__MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
         self.__MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
         self.__MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS")
+
+        self.__BASE_URL = ("https://" if self.__MINIO_USE_HTTPS else "http://") + self.__MINIO_ENDPOINT
 
         self.PRIVATE_BUCKETS: List[str] = get_setting("MINIO_PRIVATE_BUCKETS", [])
         self.PUBLIC_BUCKETS: List[str] = get_setting("MINIO_PUBLIC_BUCKETS", [])
@@ -124,12 +127,12 @@ class MinioBackend(Storage):
             resp.release_conn()
         return file
 
-    def stat(self, name: str) -> Union[minio.definitions.Object, bool]:
+    def stat(self, name: str) -> Union[minio.datatypes.Object, bool]:
         object_name = Path(name).as_posix()
         try:
             obj = self.client.stat_object(self._BUCKET_NAME, object_name=object_name)
             return obj
-        except (minio.error.NoSuchKey, minio.error.NoSuchBucket):
+        except (minio.error.S3Error, minio.error.ServerError):
             return False
         except urllib3.exceptions.MaxRetryError:
             return False
@@ -152,7 +155,7 @@ class MinioBackend(Storage):
         return False
 
     def listdir(self, bucket_name: str):
-        objects = self.client.list_objects_v2(bucket_name=bucket_name, recursive=True)
+        objects = self.client.list_objects(bucket_name=bucket_name, recursive=True)
         return [(obj.object_name, obj) for obj in objects]
 
     def size(self, name: str) -> int:
@@ -171,8 +174,7 @@ class MinioBackend(Storage):
         :return: (str) URL to object
         """
         if self.is_bucket_public:
-            # noinspection PyProtectedMember
-            return f'{self.client._endpoint_url}/{self._BUCKET_NAME}/{name}'
+            return f'{self.__BASE_URL}/{self._BUCKET_NAME}/{name}'
 
         try:
             return self.client.presigned_get_object(
@@ -237,12 +239,11 @@ class MinioBackend(Storage):
 
         with urllib3.PoolManager(cert_reqs=ssl.CERT_REQUIRED, ca_certs=certifi.where()) as http:
             try:
-                scheme = "https" if self.__MINIO_USE_HTTPS else "http"
-                r = http.request('GET', f'{scheme}://{self.__MINIO_ENDPOINT}/minio/index.html')
+                r = http.request('GET', f'{self.__BASE_URL}/minio/index.html')
                 return MinioServerStatus(r)
             except urllib3.exceptions.MaxRetryError as e:
                 mss = MinioServerStatus(None)
-                mss.add_message(f'Could not open connection to {self.__MINIO_ENDPOINT}/minio/index.html\n'
+                mss.add_message(f'Could not open connection to {self.__BASE_URL}/minio/index.html\n'
                                 f'Reason: {e}')
                 return mss
             except Exception as e:
@@ -251,11 +252,15 @@ class MinioBackend(Storage):
                 return mss
 
     @property
-    def client(self) -> Minio:
+    def client(self) -> minio.Minio:
         if not self.__CLIENT:
             self.new_client()
             return self.__CLIENT
         return self.__CLIENT
+
+    @property
+    def base_url(self) -> str:
+        return self.__BASE_URL
 
     def new_client(self):
         """
@@ -270,7 +275,7 @@ class MinioBackend(Storage):
                 'is not configured properly in your settings.py (or equivalent)'
             )
 
-        mc = Minio(
+        mc = minio.Minio(
             endpoint=self.__MINIO_ENDPOINT,
             access_key=self.__MINIO_ACCESS_KEY,
             secret_key=self.__MINIO_SECRET_KEY,

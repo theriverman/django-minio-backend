@@ -25,13 +25,11 @@ setup(
     author_email='kristof@daja.hu',
     install_requires=[
         'Django>=2.2.2',
-        'minio>=4.0.9,<7'
+        'minio>=7.0.0'
     ],
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',
-        'Framework :: Django :: 2.0',
-        'Framework :: Django :: 2.1',
         'Framework :: Django :: 2.2',
         'Framework :: Django :: 3.0',
         'Framework :: Django :: 3.1',

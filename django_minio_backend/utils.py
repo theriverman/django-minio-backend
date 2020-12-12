@@ -25,22 +25,20 @@ class MinioServerStatus:
         self._details: List[str] = []
         self.status = None
         self.data = None
-        self.eval()
 
         self.__OK = 'MinIO is available'
         self.___NOK = 'MinIO is NOT available'
 
-    def eval(self):
         if not self._request:
             self.add_message('There was no HTTP request provided for MinioServerStatus upon initialisation.')
-            return False
-        self.status = self._request.status
-        self.data = self._request.data.decode() if self._request.data else 'No data available'
-        if self.status == 403:  # Request was a legal, but the server refuses to respond to it -> it's running fine
-            self._bool = True
         else:
-            self._details.append(self.__OK)
-            self._details.append('Reason: ' + self.data)
+            self.status = self._request.status
+            self.data = self._request.data.decode() if self._request.data else 'No data available'
+            if self.status == 403:  # Request was a legal, but the server refuses to respond to it -> it's running fine
+                self._bool = True
+            else:
+                self._details.append(self.__OK)
+                self._details.append('Reason: ' + self.data)
 
     def __bool__(self):
         return self._bool
