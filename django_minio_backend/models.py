@@ -109,6 +109,15 @@ class MinioBackend(Storage):
         )
         return file_path.as_posix()
 
+    def get_available_name(self, name, max_length=None):
+        """
+        Return a filename that's free on the target storage system and
+        available for new content to be written to.
+        """
+        if self._REPLACE_EXISTING:
+            return name
+        return super(MinioBackend, self).get_available_name(name, max_length)
+
     def _open(self, object_name, mode='rb', **kwargs):
         """
         Implements the Storage._open(name,mode='rb') method
