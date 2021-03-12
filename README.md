@@ -4,6 +4,7 @@
 # django-minio-backend
 The **django-minio-backend** provides a wrapper around the 
 [MinIO Python SDK](https://docs.min.io/docs/python-client-quickstart-guide.html).
+See [minio/minio-py](https://github.com/minio/minio-py) for the source.
 
 ## Integration
 1. Get and install the package:
@@ -14,7 +15,7 @@ pip install django-minio-backend
 2. Add `django_minio_backend` to `INSTALLED_APPS`:
 ```python
 INSTALLED_APPS = [
-    '...'
+    # '...'
     'django_minio_backend',  # https://github.com/theriverman/django-minio-backend
 ]
 ```
@@ -22,7 +23,7 @@ INSTALLED_APPS = [
 If you would like to enable on-start consistency check, install via `DjangoMinioBackendConfig`:
 ```python
 INSTALLED_APPS = [
-    '...'
+    # '...'
     'django_minio_backend.apps.DjangoMinioBackendConfig',  # https://github.com/theriverman/django-minio-backend
 ]
 ``` 
@@ -111,7 +112,7 @@ For a reference implementation, see [Examples](examples).
 ## Compatibility
   * Django 2.2 or later
   * Python 3.6.0 or later
-  * MinIO SDK 7.0.0 or later
+  * MinIO SDK 7.0.2 or later
 
 **Note:** This library relies heavily on [PEP 484 -- Type Hints](https://www.python.org/dev/peps/pep-0484/) 
 which was introduced in *Python 3.5.0*.
