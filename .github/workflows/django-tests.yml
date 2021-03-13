@@ -1,0 +1,31 @@
+name: django-app-tests
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  job-run-django-app-tests:
+    name: Deploy DjangoExampleProject and run its integrated tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      # Setup Python
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      # Install Dependencies
+      - name: Install pypa/build
+        run: >-
+          python -m
+          pip install
+          -r
+          requirements.txt
+      # Setup Django
+      - name: Deploy DjangoExampleProject
+        run: python manage.py migrate
+      # Run Django Tests
+      - name: Deploy DjangoExampleProject
+        run: python manage.py tests
