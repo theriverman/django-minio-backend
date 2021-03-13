@@ -31,5 +31,5 @@ jobs:
       - name: Deploy DjangoExampleProject
         run: python manage.py migrate
       # Run Django Tests
-      - name: Deploy DjangoExampleProject
+      - name: Run Django unit tests
         run: python manage.py test
