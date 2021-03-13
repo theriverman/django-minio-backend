@@ -10,7 +10,11 @@ jobs:
     name: Deploy DjangoExampleProject and run its integrated tests
     runs-on: ubuntu-latest
     steps:
+      # Checkout the repository
       - uses: actions/checkout@v2
+      # Start the minIO container
+      - name: Start the minIO container
+        run: docker run --name miniotest -p 9000:9000 -d minio/minio server /data
       # Setup Python
       - name: Set up Python 3.8
         uses: actions/setup-python@v1
