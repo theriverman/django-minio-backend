@@ -54,9 +54,9 @@ class PublicAttachment(models.Model):
         return str(self.file)
 
     id = models.AutoField(primary_key=True, verbose_name="Public Attachment ID")
-    content_type: ContentType = models.ForeignKey(ContentType, null=False, blank=False, on_delete=models.CASCADE,
+    content_type: ContentType = models.ForeignKey(ContentType, null=True, blank=True, on_delete=models.CASCADE,
                                                   verbose_name="Content Type")
-    object_id = models.PositiveIntegerField(null=False, blank=False, verbose_name="Related Object's ID")
+    object_id = models.PositiveIntegerField(null=True, blank=True, verbose_name="Related Object's ID")
     content_object = GenericForeignKey("content_type", "object_id")
 
     file: FieldFile = models.FileField(verbose_name="Object Upload",
@@ -97,9 +97,9 @@ class PrivateAttachment(models.Model):
         return str(self.file)
 
     id = models.AutoField(primary_key=True, verbose_name="Public Attachment ID")
-    content_type: ContentType = models.ForeignKey(ContentType, null=False, blank=False, on_delete=models.CASCADE,
+    content_type: ContentType = models.ForeignKey(ContentType, null=True, blank=True, on_delete=models.CASCADE,
                                                   verbose_name="Content Type")
-    object_id = models.PositiveIntegerField(null=False, blank=False, verbose_name="Related Object's ID")
+    object_id = models.PositiveIntegerField(null=True, blank=True, verbose_name="Related Object's ID")
     content_object = GenericForeignKey("content_type", "object_id")
 
     file: FieldFile = models.FileField(verbose_name="Object Upload",
