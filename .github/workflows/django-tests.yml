@@ -1,4 +1,4 @@
-name: django-app-tests
+name: Django Unit Tests
 
 on:
   push:
