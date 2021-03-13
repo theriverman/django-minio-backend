@@ -1,4 +1,4 @@
-name: publish-py-dist-to-pypi
+name: PyPI Publish
 
 on:
   push:

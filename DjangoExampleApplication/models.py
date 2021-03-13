@@ -21,6 +21,14 @@ class Image(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     image = models.ImageField(upload_to=iso_date_prefix, storage=MinioBackend(bucket_name='django-backend-dev-public'))
 
+    def delete(self, *args, **kwargs):
+        """
+        Delete must be overridden because the inherited delete method does not call `self.file.delete()`.
+        """
+        # noinspection PyUnresolvedReferences
+        self.image.delete()
+        super(Image, self).delete(*args, **kwargs)
+
 
 # Create your models here.
 class PublicAttachment(models.Model):
@@ -54,9 +62,9 @@ class PublicAttachment(models.Model):
         return str(self.file)
 
     id = models.AutoField(primary_key=True, verbose_name="Public Attachment ID")
-    content_type: ContentType = models.ForeignKey(ContentType, null=False, blank=False, on_delete=models.CASCADE,
+    content_type: ContentType = models.ForeignKey(ContentType, null=True, blank=True, on_delete=models.CASCADE,
                                                   verbose_name="Content Type")
-    object_id = models.PositiveIntegerField(null=False, blank=False, verbose_name="Related Object's ID")
+    object_id = models.PositiveIntegerField(null=True, blank=True, verbose_name="Related Object's ID")
     content_object = GenericForeignKey("content_type", "object_id")
 
     file: FieldFile = models.FileField(verbose_name="Object Upload",
@@ -97,9 +105,9 @@ class PrivateAttachment(models.Model):
         return str(self.file)
 
     id = models.AutoField(primary_key=True, verbose_name="Public Attachment ID")
-    content_type: ContentType = models.ForeignKey(ContentType, null=False, blank=False, on_delete=models.CASCADE,
+    content_type: ContentType = models.ForeignKey(ContentType, null=True, blank=True, on_delete=models.CASCADE,
                                                   verbose_name="Content Type")
-    object_id = models.PositiveIntegerField(null=False, blank=False, verbose_name="Related Object's ID")
+    object_id = models.PositiveIntegerField(null=True, blank=True, verbose_name="Related Object's ID")
     content_object = GenericForeignKey("content_type", "object_id")
 
     file: FieldFile = models.FileField(verbose_name="Object Upload",
