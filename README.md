@@ -1,5 +1,5 @@
 [![django-app-tests](https://github.com/theriverman/django-minio-backend/actions/workflows/django-tests.yml/badge.svg)](https://github.com/theriverman/django-minio-backend/actions/workflows/django-tests.yml)
-[![Actions Status](https://github.com/theriverman/django-minio-backend/workflows/publish-py-dist-to-pypi/badge.svg)](https://github.com/theriverman/django-minio-backend/actions)
+[![publish-py-dist-to-pypi](https://github.com/theriverman/django-minio-backend/actions/workflows/publish-to-pypi.yml/badge.svg)](https://github.com/theriverman/django-minio-backend/actions/workflows/publish-to-pypi.yml)
 [![PYPI](https://img.shields.io/pypi/v/django-minio-backend.svg)](https://pypi.python.org/pypi/django-minio-backend)
 
 # django-minio-backend
