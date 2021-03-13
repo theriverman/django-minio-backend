@@ -21,6 +21,14 @@ class Image(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     image = models.ImageField(upload_to=iso_date_prefix, storage=MinioBackend(bucket_name='django-backend-dev-public'))
 
+    def delete(self, *args, **kwargs):
+        """
+        Delete must be overridden because the inherited delete method does not call `self.file.delete()`.
+        """
+        # noinspection PyUnresolvedReferences
+        self.image.delete()
+        super(Image, self).delete(*args, **kwargs)
+
 
 # Create your models here.
 class PublicAttachment(models.Model):
