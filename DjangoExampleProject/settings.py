@@ -163,3 +163,4 @@ MINIO_CONSISTENCY_CHECK_ON_START = True
 MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = [
     # ('django-backend-dev-private', dummy_policy)
 ]
+MINIO_BUCKET_EXISTENCE_CHECK_BEFORE_SAVE = True  # Create bucket if missing, then save

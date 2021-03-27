@@ -55,6 +55,7 @@ MINIO_PUBLIC_BUCKETS = [
     'django-backend-dev-public',
 ]
 MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = []
+MINIO_BUCKET_EXISTENCE_CHECK_BEFORE_SAVE = True  # Default: True // Creates bucket if missing, then save
 ```
 
 4. Implement your own Attachment handler and integrate **django-minio-backend**:

@@ -88,8 +88,9 @@ class MinioBackend(Storage):
         :param content (InMemoryUploadedFile): File object
         :return:
         """
-        # Check if bucket exists, create if not
-        self.check_bucket_existence()
+        if get_setting("MINIO_BUCKET_EXISTENCE_CHECK_BEFORE_SAVE", True):
+            # Check if bucket exists, create if not
+            self.check_bucket_existence()
 
         # Check if object with name already exists; delete if so
         if self._REPLACE_EXISTING and self.stat(file_path_name):
