@@ -1,5 +1,6 @@
 from django.apps import AppConfig
 from .utils import get_setting, ConfigurationError
+from .models import MinioBackendStatic
 
 
 __all__ = ['DjangoMinioBackendConfig', ]
@@ -20,3 +21,9 @@ class DjangoMinioBackendConfig(AppConfig):
         external_use_https = get_setting('MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
         if (external_address and external_use_https is None) or (not external_address and external_use_https):
             raise ConfigurationError('MINIO_EXTERNAL_ENDPOINT must be configured together with MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
+
+        # Validate static storage and default storage configurations
+        staticfiles_storage: str = get_setting('STATICFILES_STORAGE')
+        if staticfiles_storage.endswith(MinioBackendStatic.__name__):
+            mbs = MinioBackendStatic()
+            mbs.check_bucket_existence()

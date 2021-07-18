@@ -2,7 +2,7 @@ from typing import Union
 from django.db.models.query import QuerySet
 from django.contrib import admin
 from django.core.handlers.wsgi import WSGIRequest
-from .models import PublicAttachment, PrivateAttachment, Image
+from .models import PublicAttachment, PrivateAttachment, Image, GenericAttachment
 
 
 # https://docs.djangoproject.com/en/2.2/ref/contrib/admin/actions/#writing-action-functions
@@ -29,6 +29,14 @@ class ImageAdmin(admin.ModelAdmin):
     list_display = ('id', 'image',)
     readonly_fields = ('id', )
     model = Image
+    actions = [delete_everywhere, ]
+
+
+@admin.register(GenericAttachment)
+class GenericAttachmentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'file',)
+    readonly_fields = ('id', )
+    model = GenericAttachment
     actions = [delete_everywhere, ]
 
 
