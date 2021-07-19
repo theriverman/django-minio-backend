@@ -12,7 +12,6 @@ import mimetypes
 import ssl
 from datetime import datetime, timedelta
 from pathlib import Path
-from time import mktime
 from typing import Union, List
 
 # noinspection PyPackageRequirements MinIO_requirement
@@ -58,9 +57,11 @@ class MinioBackend(Storage):
         Through self._META_KWARGS, the "metadata", "sse" and "progress" fields can be set
         for the underlying put_object() MinIO SDK method
     """
-
-    MINIO_MEDIA_FILES_BUCKET = get_setting("MINIO_MEDIA_FILES_BUCKET", default='auto-generated-bucket-media-files')
-    MINIO_STATIC_FILES_BUCKET = get_setting("MINIO_STATIC_FILES_BUCKET", default='auto-generated-bucket-static-files')
+    DEFAULT_MEDIA_FILES_BUCKET = 'auto-generated-bucket-media-files'
+    DEFAULT_STATIC_FILES_BUCKET = 'auto-generated-bucket-static-files'
+    DEFAULT_PRIVATE_BUCKETS = [DEFAULT_MEDIA_FILES_BUCKET, DEFAULT_STATIC_FILES_BUCKET]
+    MINIO_MEDIA_FILES_BUCKET = get_setting("MINIO_MEDIA_FILES_BUCKET", default=DEFAULT_MEDIA_FILES_BUCKET)
+    MINIO_STATIC_FILES_BUCKET = get_setting("MINIO_STATIC_FILES_BUCKET", default=DEFAULT_STATIC_FILES_BUCKET)
 
     def __init__(self,
                  bucket_name: str = '',
@@ -105,7 +106,11 @@ class MinioBackend(Storage):
         if self.bucket == self.MINIO_STATIC_FILES_BUCKET:
             self.__STORAGE_TYPE = 'static'
 
-        if self._BUCKET_NAME not in [*self.PRIVATE_BUCKETS, *self.PUBLIC_BUCKETS]:
+        # Enforce good bucket security (private vs public)
+        if (self.bucket in self.DEFAULT_PRIVATE_BUCKETS) and (self.bucket not in [*self.PRIVATE_BUCKETS, *self.PUBLIC_BUCKETS]):
+            self.PRIVATE_BUCKETS.extend(self.DEFAULT_PRIVATE_BUCKETS)  # policy for default buckets is PRIVATE
+        # Require custom buckets to be declared explicitly
+        if self.bucket not in [*self.PRIVATE_BUCKETS, *self.PUBLIC_BUCKETS]:
             raise ConfigurationError(f'The configured bucket ({self.bucket}) must be declared either in MINIO_PRIVATE_BUCKETS or MINIO_PUBLIC_BUCKETS')
 
         # https://docs.min.io/docs/python-client-api-reference.html
@@ -138,7 +143,7 @@ class MinioBackend(Storage):
         # Upload object
         file_path: Path = Path(file_path_name)  # app name + file.suffix
         self.client.put_object(
-            bucket_name=self._BUCKET_NAME,
+            bucket_name=self.bucket,
             object_name=file_path.as_posix(),
             data=content,
             length=content.size,
@@ -169,7 +174,7 @@ class MinioBackend(Storage):
         if mode != 'rb':
             raise ValueError('Files retrieved from MinIO are read-only. Use save() method to override contents')
         try:
-            resp = self.client.get_object(self._BUCKET_NAME, object_name, kwargs)
+            resp = self.client.get_object(self.bucket, object_name, kwargs)
             file = File(file=io.BytesIO(resp.read()), name=object_name)
         finally:
             resp.close()
@@ -180,7 +185,7 @@ class MinioBackend(Storage):
         """Get object information and metadata of an object"""
         object_name = Path(name).as_posix()
         try:
-            obj = self.client.stat_object(self._BUCKET_NAME, object_name=object_name)
+            obj = self.client.stat_object(self.bucket, object_name=object_name)
             return obj
         except (minio.error.S3Error, minio.error.ServerError):
             return False
@@ -196,7 +201,7 @@ class MinioBackend(Storage):
         :param name: File object name
         """
         object_name = Path(name).as_posix()
-        self.client.remove_object(bucket_name=self._BUCKET_NAME, object_name=object_name)
+        self.client.remove_object(bucket_name=self.bucket, object_name=object_name)
 
     def exists(self, name: str) -> bool:
         """Check if an object with name already exists"""
@@ -227,18 +232,18 @@ class MinioBackend(Storage):
         :return: (str) URL to object
         """
         if self.is_bucket_public:
-            return f'{self.base_url_external}/{self._BUCKET_NAME}/{name}'
+            return f'{self.base_url_external}/{self.bucket}/{name}'
 
         try:
             if self.same_endpoints:
                 u: str = self.client.presigned_get_object(
-                    bucket_name=self._BUCKET_NAME,
+                    bucket_name=self.bucket,
                     object_name=name.encode('utf-8'),
                     expires=get_setting("MINIO_URL_EXPIRY_HOURS", timedelta(days=7))  # Default is 7 days
                 )
             else:
                 u: str = self.client_external.presigned_get_object(
-                    bucket_name=self._BUCKET_NAME,
+                    bucket_name=self.bucket,
                     object_name=name.encode('utf-8'),
                     expires=get_setting("MINIO_URL_EXPIRY_HOURS", timedelta(days=7))  # Default is 7 days
                 )
@@ -270,7 +275,7 @@ class MinioBackend(Storage):
         name. The datetime will be timezone-aware if USE_TZ=True.
         """
         obj = self.stat(name)
-        return datetime.fromtimestamp(mktime(obj.last_modified))
+        return obj.last_modified
 
     @staticmethod
     def _guess_content_type(file_path_name: str, content: InMemoryUploadedFile):
@@ -295,12 +300,12 @@ class MinioBackend(Storage):
     @property
     def bucket(self) -> str:
         """Get the configured bucket's [self.bucket] name"""
-        return self._BUCKET_NAME
+        return self.bucket
 
     @property
     def is_bucket_public(self) -> bool:
         """Check if configured bucket [self.bucket] is public"""
-        return True if self._BUCKET_NAME in self.PUBLIC_BUCKETS else False
+        return True if self.bucket in self.PUBLIC_BUCKETS else False
 
     def is_minio_available(self) -> MinioServerStatus:
         """Check if configured MinIO server is available"""
