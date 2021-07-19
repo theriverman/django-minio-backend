@@ -300,7 +300,7 @@ class MinioBackend(Storage):
     @property
     def bucket(self) -> str:
         """Get the configured bucket's [self.bucket] name"""
-        return self.bucket
+        return self._BUCKET_NAME
 
     @property
     def is_bucket_public(self) -> bool:
