@@ -43,6 +43,8 @@ from datetime import timedelta
 from typing import List, Tuple
 
 MINIO_ENDPOINT = 'minio.your-company.co.uk'
+MINIO_EXTERNAL_ENDPOINT = "external-minio.your-company.co.uk"  # Default is same as MINIO_ENDPOINT
+MINIO_EXTERNAL_ENDPOINT_USE_HTTPS = True  # Default is same as MINIO_USE_HTTPS
 MINIO_ACCESS_KEY = 'yourMinioAccessKey'
 MINIO_SECRET_KEY = 'yourVeryS3cr3tP4ssw0rd'
 MINIO_USE_HTTPS = True

@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
 
-class AttachmentsConfig(AppConfig):
-    name = 'Attachments'
+class DjangoExampleApplicationConfig(AppConfig):
+    name = 'DjangoExampleApplication'

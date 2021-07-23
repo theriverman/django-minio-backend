@@ -58,12 +58,17 @@ class MinioBackend(Storage):
         self._REPLACE_EXISTING = kwargs.get('replace_existing', False)
 
         self.__CLIENT: Union[minio.Minio, None] = None
+        self.__CLIENT_EXTERNAL: Union[minio.Minio, None] = None
         self.__MINIO_ENDPOINT: str = get_setting("MINIO_ENDPOINT")
+        self.__MINIO_EXTERNAL_ENDPOINT: str = get_setting("MINIO_EXTERNAL_ENDPOINT", self.__MINIO_ENDPOINT)
         self.__MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
         self.__MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
         self.__MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS")
+        self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = get_setting("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
 
         self.__BASE_URL = ("https://" if self.__MINIO_USE_HTTPS else "http://") + self.__MINIO_ENDPOINT
+        self.__BASE_URL_EXTERNAL = ("https://" if self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS else "http://") + self.__MINIO_EXTERNAL_ENDPOINT
+        self.__SAME_ENDPOINTS = self.__MINIO_ENDPOINT == self.__MINIO_EXTERNAL_ENDPOINT
 
         self.PRIVATE_BUCKETS: List[str] = get_setting("MINIO_PRIVATE_BUCKETS", [])
         self.PUBLIC_BUCKETS: List[str] = get_setting("MINIO_PUBLIC_BUCKETS", [])
@@ -184,14 +189,22 @@ class MinioBackend(Storage):
         :return: (str) URL to object
         """
         if self.is_bucket_public:
-            return f'{self.__BASE_URL}/{self._BUCKET_NAME}/{name}'
+            return f'{self.base_url_external}/{self._BUCKET_NAME}/{name}'
 
         try:
-            return self.client.presigned_get_object(
-                bucket_name=self._BUCKET_NAME,
-                object_name=name.encode('utf-8'),
-                expires=get_setting("MINIO_URL_EXPIRY_HOURS", timedelta(days=7))  # Default is 7 days
-            )
+            if self.same_endpoints:
+                u: str = self.client.presigned_get_object(
+                    bucket_name=self._BUCKET_NAME,
+                    object_name=name.encode('utf-8'),
+                    expires=get_setting("MINIO_URL_EXPIRY_HOURS", timedelta(days=7))  # Default is 7 days
+                )
+            else:
+                u: str = self.client_external.presigned_get_object(
+                    bucket_name=self._BUCKET_NAME,
+                    object_name=name.encode('utf-8'),
+                    expires=get_setting("MINIO_URL_EXPIRY_HOURS", timedelta(days=7))  # Default is 7 days
+                )
+            return u
         except urllib3.exceptions.MaxRetryError:
             raise ConnectionError("Couldn't connect to Minio. Check django_minio_backend parameters in Django-Settings")
 
@@ -234,6 +247,13 @@ class MinioBackend(Storage):
     """
 
     @property
+    def same_endpoints(self) -> bool:
+        """
+        Returns True if (self.__MINIO_ENDPOINT == self.__MINIO_EXTERNAL_ENDPOINT)
+        """
+        return self.__SAME_ENDPOINTS
+
+    @property
     def bucket(self) -> str:
         return self._BUCKET_NAME
 
@@ -269,13 +289,23 @@ class MinioBackend(Storage):
         return self.__CLIENT
 
     @property
+    def client_external(self) -> minio.Minio:
+        if not self.__CLIENT_EXTERNAL:
+            self.new_client(internal=False)
+            return self.__CLIENT_EXTERNAL
+        return self.__CLIENT_EXTERNAL
+
+    @property
     def base_url(self) -> str:
         return self.__BASE_URL
 
-    def new_client(self):
+    @property
+    def base_url_external(self) -> str:
+        return self.__BASE_URL_EXTERNAL
+
+    def new_client(self, internal: bool = True):
         """
-        Instantiates a new Minio client and
-        :return:
+        Instantiates a new Minio client and assigns it to their respective class variable
         """
         # Safety Guards
         if not self.PRIVATE_BUCKETS or not self.PUBLIC_BUCKETS:
@@ -286,13 +316,16 @@ class MinioBackend(Storage):
             )
 
         mc = minio.Minio(
-            endpoint=self.__MINIO_ENDPOINT,
+            endpoint=self.__MINIO_ENDPOINT if internal else self.__MINIO_EXTERNAL_ENDPOINT,
             access_key=self.__MINIO_ACCESS_KEY,
             secret_key=self.__MINIO_SECRET_KEY,
-            secure=self.__MINIO_USE_HTTPS,
+            secure=self.__MINIO_USE_HTTPS if internal else self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS,
             http_client=self.HTTP_CLIENT,
         )
-        self.__CLIENT = mc
+        if internal:
+            self.__CLIENT = mc
+        else:
+            self.__CLIENT_EXTERNAL = mc
 
     # MAINTENANCE
     def check_bucket_existence(self):

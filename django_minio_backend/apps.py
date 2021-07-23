@@ -1,5 +1,5 @@
 from django.apps import AppConfig
-from .utils import get_setting
+from .utils import get_setting, ConfigurationError
 
 
 __all__ = ['DjangoMinioBackendConfig', ]
@@ -14,3 +14,9 @@ class DjangoMinioBackendConfig(AppConfig):
             from django.core.management import call_command
             print("Executing consistency checks...")
             call_command('initialize_buckets', silenced=True)
+
+        # Validate configuration combinations for EXTERNAL ENDPOINT
+        external_address = bool(get_setting('MINIO_EXTERNAL_ENDPOINT'))
+        external_use_https = get_setting('MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
+        if (external_address and external_use_https is None) or (not external_address and external_use_https):
+            raise ConfigurationError('MINIO_EXTERNAL_ENDPOINT must be configured together with MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
