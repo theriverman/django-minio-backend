@@ -61,12 +61,15 @@ class MinioServerStatus:
 
 
 class PrivatePublicMixedError(Exception):
+    """Raised on public|private bucket configuration collisions"""
     pass
 
 
 class ConfigurationError(Exception):
+    """Raised on django-minio-backend configuration errors"""
     pass
 
 
 def get_setting(name, default=None):
+    """Get setting from settings.py. Return a default value if not defined"""
     return getattr(settings, name, default)

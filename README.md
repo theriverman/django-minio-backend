@@ -57,6 +57,8 @@ MINIO_PUBLIC_BUCKETS = [
     'django-backend-dev-public',
 ]
 MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = []
+# MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for MEDIA_ROOT
+# MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for STATIC_ROOT
 MINIO_BUCKET_EXISTENCE_CHECK_BEFORE_SAVE = True  # Default: True // Creates bucket if missing, then save
 ```
 
@@ -80,6 +82,48 @@ python manage.py initialize_buckets
 
 Code reference: [initialize_buckets.py](django_minio_backend/management/commands/initialize_buckets.py).
 
+### Static Files Support
+**django-minio-backend** allows serving static files from MinIO.
+To learn more about Django static files, see [Managing static files](https://docs.djangoproject.com/en/3.2/howto/static-files/), and [STATICFILES_STORAGE](https://docs.djangoproject.com/en/3.2/ref/settings/#staticfiles-storage).
+
+To enable static files support, update your `settings.py`:
+```python
+STATICFILES_STORAGE = 'django_minio_backend.models.MinioBackendStatic'
+MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for STATIC_ROOT
+# Add the value of MINIO_STATIC_FILES_BUCKET to one of the pre-configured bucket lists. eg.:
+# MINIO_PRIVATE_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
+# MINIO_PUBLIC_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
+```
+
+The value of `STATIC_URL` is ignored, but it must be defined otherwise Django will throw an error.
+
+**IMPORTANT**<br>
+The value set in `MINIO_STATIC_FILES_BUCKET` must be added either to `MINIO_PRIVATE_BUCKETS` or `MINIO_PUBLIC_BUCKETS`,
+otherwise **django-minio-backend** will raise an exception. This setting determines the privacy of generated file URLs which can be unsigned public or signed private.  
+
+**Note:** If `MINIO_STATIC_FILES_BUCKET` is not set, the default value (`auto-generated-static-media-files`) will be used. Policy setting for default buckets is **private**.
+
+### Default File Storage Support
+**django-minio-backend** can be configured as a default file storage.
+To learn more, see [DEFAULT_FILE_STORAGE](https://docs.djangoproject.com/en/3.2/ref/settings/#default-file-storage).
+
+To configure **django-minio-backend** as the default file storage, update your `settings.py`:
+```python
+DEFAULT_FILE_STORAGE = 'django_minio_backend.models.MinioBackend'
+MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for MEDIA_ROOT
+# Add the value of MINIO_STATIC_FILES_BUCKET to one of the pre-configured bucket lists. eg.:
+# MINIO_PRIVATE_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
+# MINIO_PUBLIC_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
+```
+
+The value of `MEDIA_URL` is ignored, but it must be defined otherwise Django will throw an error.
+
+**IMPORTANT**<br>
+The value set in `MINIO_MEDIA_FILES_BUCKET` must be added either to `MINIO_PRIVATE_BUCKETS` or `MINIO_PUBLIC_BUCKETS`,
+otherwise **django-minio-backend** will raise an exception. This setting determines the privacy of generated file URLs which can be unsigned public or signed private.
+
+**Note:** If `MINIO_MEDIA_FILES_BUCKET` is not set, the default value (`auto-generated-bucket-media-files`) will be used. Policy setting for default buckets is **private**.
+
 ### Health Check
 To check the connection link between Django and MinIO, use the provided `MinioBackend.is_minio_available()` method.<br>
 It returns a `MinioServerStatus` instance which can be quickly evaluated as boolean.<br>
@@ -88,7 +132,7 @@ It returns a `MinioServerStatus` instance which can be quickly evaluated as bool
 ```python
 from django_minio_backend import MinioBackend
 
-minio_available = MinioBackend('').is_minio_available()  # An empty string is fine this time
+minio_available = MinioBackend().is_minio_available()  # An empty string is fine this time
 if minio_available:
     print("OK")
 else:
