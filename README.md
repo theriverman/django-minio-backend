@@ -59,7 +59,7 @@ MINIO_PUBLIC_BUCKETS = [
 MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = []
 # MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for MEDIA_ROOT
 # MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for STATIC_ROOT
-MINIO_BUCKET_EXISTENCE_CHECK_BEFORE_SAVE = True  # Default: True // Creates bucket if missing, then save
+MINIO_BUCKET_CHECK_ON_SAVE = True  # Default: True // Creates bucket if missing, then save
 ```
 
 4. Implement your own Attachment handler and integrate **django-minio-backend**:
@@ -156,6 +156,21 @@ In case a bucket is missing or its configuration differs, it gets created and co
 
 ### Reference Implementation
 For a reference implementation, see [Examples](examples).
+
+## Behaviour
+The following list summarises the key characteristics of **django-minio-backend**:
+  * Bucket existence is **not** checked on save by default.
+    To enable this guard, set `MINIO_BUCKET_CHECK_ON_SAVE = True` in your `settings.py`.
+  * Bucket existences are **not** checked on Django start by default.
+    To enable this guard, set `MINIO_CONSISTENCY_CHECK_ON_START = True` in your `settings.py`.
+  * Many configuration errors are validated through `AppConfig` but not every error can be captured there.
+  * Files with the same name in the same bucket are **not** replaced on save by default. Django will store the newer file with an altered file name
+    To allow replacing existing files, pass the `replace_existing=True` kwarg to `MinioBackend`.
+    For example: `image = models.ImageField(storage=MinioBackend(bucket_name='images-public', replace_existing=True))`
+  * Depending on your configuration, **django-minio-backend** may communicate over two kind of interfaces: internal and external.
+    If your `settings.py` defines a different value for `MINIO_ENDPOINT` and `MINIO_EXTERNAL_ENDPOINT`, then the former will be used for internal communication
+    between Django and MinIO, and the latter for generating URLs for users. This behaviour optimises the network communication.
+  * The uploaded object's content-type is guessed during save. If `mimetypes.guess_type` fails to determine the correct content-type, then it falls back to `application/octet-stream`.
 
 ## Compatibility
   * Django 2.2 or later

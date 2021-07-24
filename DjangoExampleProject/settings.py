@@ -171,4 +171,4 @@ MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = [
 ]
 MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for STATIC_ROOT
 MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for MEDIA_ROOT
-MINIO_BUCKET_EXISTENCE_CHECK_BEFORE_SAVE = True  # Create bucket if missing, then save
+MINIO_BUCKET_CHECK_ON_SAVE = False  # Create bucket if missing, then save

@@ -91,6 +91,7 @@ class MinioBackend(Storage):
         self.__MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
         self.__MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS")
         self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = get_setting("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
+        self.__MINIO_BUCKET_CHECK_ON_SAVE: bool = get_setting("MINIO_BUCKET_CHECK_ON_SAVE", False)
 
         self.__BASE_URL = ("https://" if self.__MINIO_USE_HTTPS else "http://") + self.__MINIO_ENDPOINT
         self.__BASE_URL_EXTERNAL = ("https://" if self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS else "http://") + self.__MINIO_EXTERNAL_ENDPOINT
@@ -133,8 +134,8 @@ class MinioBackend(Storage):
         :param content (InMemoryUploadedFile): File object
         :return:
         """
-        if get_setting("MINIO_BUCKET_EXISTENCE_CHECK_BEFORE_SAVE", True):
-            # Check if bucket exists, create if not
+        if self.__MINIO_BUCKET_CHECK_ON_SAVE:
+            # Create bucket if not exists
             self.check_bucket_existence()
 
         # Check if object with name already exists; delete if so
