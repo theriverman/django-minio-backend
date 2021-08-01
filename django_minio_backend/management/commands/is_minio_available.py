@@ -9,7 +9,7 @@ class Command(BaseCommand):
         parser.add_argument('--silenced', action='store_true', default=False, help='No console messages')
 
     def handle(self, *args, **options):
-        m = MinioBackend('')  # no configured bucket
+        m = MinioBackend()  # use default storage
         silenced = options.get('silenced')
         self.stdout.write(f"Checking the availability of MinIO at {m.base_url}\n") if not silenced else None
 

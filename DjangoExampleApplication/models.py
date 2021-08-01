@@ -23,11 +23,28 @@ class Image(models.Model):
 
     def delete(self, *args, **kwargs):
         """
-        Delete must be overridden because the inherited delete method does not call `self.file.delete()`.
+        Delete must be overridden because the inherited delete method does not call `self.image.delete()`.
         """
         # noinspection PyUnresolvedReferences
         self.image.delete()
         super(Image, self).delete(*args, **kwargs)
+
+
+class GenericAttachment(models.Model):
+    """
+    This is for demonstrating uploads to the default file storage
+    """
+    objects = models.Manager()
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    file = models.FileField(verbose_name="Object Upload (to default storage)")
+
+    def delete(self, *args, **kwargs):
+        """
+        Delete must be overridden because the inherited delete method does not call `self.image.delete()`.
+        """
+        # noinspection PyUnresolvedReferences
+        self.image.delete()
+        super(GenericAttachment, self).delete(*args, **kwargs)
 
 
 # Create your models here.

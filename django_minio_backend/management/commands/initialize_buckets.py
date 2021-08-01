@@ -25,7 +25,7 @@ class Command(BaseCommand):
                 self.stdout.write(
                     f"Bucket ({m.bucket}) policy has been set to public", ending='\n') if not silenced else None
 
-        c = MinioBackend('')  # Client
+        c = MinioBackend()  # Client
         for policy_tuple in get_setting('MINIO_POLICY_HOOKS', []):
             bucket, policy = policy_tuple
             c.set_bucket_policy(bucket, policy)
