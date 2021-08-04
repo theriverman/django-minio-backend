@@ -1,0 +1,108 @@
+# ORIGINAL SOURCE
+# https://docs.min.io/docs/deploy-minio-on-docker-compose.html
+# https://github.com/minio/minio/blob/master/docs/orchestration/docker-compose/docker-compose.yaml?raw=true
+
+# IN THIS CONFIGURATION, THE PROJECT FILES ARE VOLUME MAPPED INTO THE CONTAINER FROM THE HOST
+
+version: "3.9"
+
+# Settings and configurations that are common for all containers
+x-minio-common: &minio-common
+  image: minio/minio:RELEASE.2021-07-30T00-02-00Z
+  command: server --console-address ":9001" http://minio{1...4}/data{1...2}
+  expose:
+    - "9000"
+    - "9001"
+  environment:
+    MINIO_ROOT_USER: minio
+    MINIO_ROOT_PASSWORD: minio123
+  healthcheck:
+    test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+    interval: 30s
+    timeout: 20s
+    retries: 3
+
+services:
+  # starts Django from DjangoExampleProject + DjangoExampleApplication
+  web:
+    image: python:3
+    command: bash -c "
+      pip install -r /code/requirements.txt
+      && python manage.py migrate
+      && python manage.py runserver 0.0.0.0:8000
+      "
+    volumes:
+      - .:/code
+    working_dir: /code
+    environment:
+      PYTHONUNBUFFERED: "1"
+      GH_MINIO_ENDPOINT: "nginx:9000"
+      GH_MINIO_USE_HTTPS: "false"
+      GH_MINIO_EXTERNAL_ENDPOINT: "localhost:9000"
+      GH_MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: "false"
+      GH_MINIO_ACCESS_KEY: "minio"
+      GH_MINIO_SECRET_KEY: "minio123"
+      # CREATE AN ADMIN ACCOUNT FOR INTERNAL DEMO PURPOSES ONLY!
+      DJANGO_SUPERUSER_USERNAME: "admin"
+      DJANGO_SUPERUSER_PASSWORD: "123123"
+      DJANGO_SUPERUSER_EMAIL: "admin@local.test"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - nginx
+  # starts 4 docker containers running minio server instances.
+  # using nginx reverse proxy, load balancing, you can access
+  # it through port 9000.
+  minio1:
+    <<: *minio-common
+    hostname: minio1
+    volumes:
+      - data1-1:/data1
+      - data1-2:/data2
+
+  minio2:
+    <<: *minio-common
+    hostname: minio2
+    volumes:
+      - data2-1:/data1
+      - data2-2:/data2
+
+  minio3:
+    <<: *minio-common
+    hostname: minio3
+    volumes:
+      - data3-1:/data1
+      - data3-2:/data2
+
+  minio4:
+    <<: *minio-common
+    hostname: minio4
+    volumes:
+      - data4-1:/data1
+      - data4-2:/data2
+
+  nginx:
+    image: nginx:1.19.2-alpine
+    hostname: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    depends_on:
+      - minio1
+      - minio2
+      - minio3
+      - minio4
+
+## By default this config uses default local driver,
+## For custom volumes replace with volume driver configuration.
+volumes:
+  data1-1:
+  data1-2:
+  data2-1:
+  data2-2:
+  data3-1:
+  data3-2:
+  data4-1:
+  data4-2:

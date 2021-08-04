@@ -159,7 +159,7 @@ For a reference implementation, see [Examples](examples).
 
 ## Behaviour
 The following list summarises the key characteristics of **django-minio-backend**:
-  * Bucket existence is **not** checked on save by default.
+  * Bucket existence is **not** checked on a save by default.
     To enable this guard, set `MINIO_BUCKET_CHECK_ON_SAVE = True` in your `settings.py`.
   * Bucket existences are **not** checked on Django start by default.
     To enable this guard, set `MINIO_CONSISTENCY_CHECK_ON_START = True` in your `settings.py`.
@@ -170,7 +170,15 @@ The following list summarises the key characteristics of **django-minio-backend*
   * Depending on your configuration, **django-minio-backend** may communicate over two kind of interfaces: internal and external.
     If your `settings.py` defines a different value for `MINIO_ENDPOINT` and `MINIO_EXTERNAL_ENDPOINT`, then the former will be used for internal communication
     between Django and MinIO, and the latter for generating URLs for users. This behaviour optimises the network communication.
+    See **Networking** below for a thorough explanation
   * The uploaded object's content-type is guessed during save. If `mimetypes.guess_type` fails to determine the correct content-type, then it falls back to `application/octet-stream`.
+
+## Networking
+If your Django application is running on a shared host with your MinIO instance, you should consider using the `MINIO_EXTERNAL_ENDPOINT` and `MINIO_EXTERNAL_ENDPOINT_USE_HTTPS` parameters.
+This way most traffic will happen internally between Django and MinIO. The external_endpoint parameters are required for external pre-signed URL generation.
+
+If your Django application and MinIO instance are running on different hosts, you can omit the `MINIO_EXTERNAL_ENDPOINT` and `MINIO_EXTERNAL_ENDPOINT_USE_HTTPS` parameters, 
+and **django-minio-backend** will default to the value of `MINIO_ENDPOINT`.
 
 ## Compatibility
   * Django 2.2 or later
@@ -179,6 +187,9 @@ The following list summarises the key characteristics of **django-minio-backend*
 
 **Note:** This library relies heavily on [PEP 484 -- Type Hints](https://www.python.org/dev/peps/pep-0484/) 
 which was introduced in *Python 3.5.0*.
+
+## Docker
+See [README.Docker.md](README.Docker.md) for a real-life Docker Compose demonstration.
 
 ## Contribution
 Please find the details in [CONTRIBUTE.md](CONTRIBUTE.md)
