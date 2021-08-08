@@ -173,12 +173,17 @@ The following list summarises the key characteristics of **django-minio-backend*
     See **Networking** below for a thorough explanation
   * The uploaded object's content-type is guessed during save. If `mimetypes.guess_type` fails to determine the correct content-type, then it falls back to `application/octet-stream`.
 
-## Networking
+## Networking and Docker
 If your Django application is running on a shared host with your MinIO instance, you should consider using the `MINIO_EXTERNAL_ENDPOINT` and `MINIO_EXTERNAL_ENDPOINT_USE_HTTPS` parameters.
-This way most traffic will happen internally between Django and MinIO. The external_endpoint parameters are required for external pre-signed URL generation.
+This way most traffic will happen internally between Django and MinIO. The external endpoint parameters are required for external pre-signed URL generation.
 
 If your Django application and MinIO instance are running on different hosts, you can omit the `MINIO_EXTERNAL_ENDPOINT` and `MINIO_EXTERNAL_ENDPOINT_USE_HTTPS` parameters, 
 and **django-minio-backend** will default to the value of `MINIO_ENDPOINT`.
+
+Setting up and configuring custom networks in Docker is not in the scope of this document. <br>
+To learn more about Docker networking, see [Networking overview](https://docs.docker.com/network/) and [Networking in Compose](https://docs.docker.com/compose/networking/).
+
+See [README.Docker.md](README.Docker.md) for a real-life Docker Compose demonstration.
 
 ## Compatibility
   * Django 2.2 or later
@@ -187,9 +192,6 @@ and **django-minio-backend** will default to the value of `MINIO_ENDPOINT`.
 
 **Note:** This library relies heavily on [PEP 484 -- Type Hints](https://www.python.org/dev/peps/pep-0484/) 
 which was introduced in *Python 3.5.0*.
-
-## Docker
-See [README.Docker.md](README.Docker.md) for a real-life Docker Compose demonstration.
 
 ## Contribution
 Please find the details in [CONTRIBUTE.md](CONTRIBUTE.md)

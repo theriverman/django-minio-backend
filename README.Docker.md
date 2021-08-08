@@ -1,23 +1,14 @@
-# Demo Description for Docker Compose
+# Docker Compose Description for django-minio-backend
 Execute the following step to start a demo environment using Docker Compose:
 
 **Start the Docker Compose services:**
  ```shell
- docker-compose up
+ docker-compose up -d
+ docker-compose exec web python manage.py createsuperuser --noinput
+ docker-compose exec web python manage.py collectstatic --noinput
  ```
- Leave this shell instance intact to keep your Docker services running!
 
-# Django Admin
-Open your browser at http://localhost:8000/admin to access the Django admin portal:
-  * username: `admin`
-  * password: `123123`
-
-# MinIO Console
-Open your browser at http://localhost:9001 to access the MiniIO Console:
-  * username: `minio`
-  * password: `minio123`
-
-# docker-compose.yml
+## About docker-compose.yml
 Note the following lines in `docker-compose.yml`:
 ```yaml
  environment:
@@ -27,10 +18,24 @@ Note the following lines in `docker-compose.yml`:
    GH_MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: "false"
 ```
 
-The value of `GH_MINIO_ENDPOINT` is `nginx:9000` because in the used [docker-compose.yml](docker-compose.yml) file the minio instances are load balanced by NGINX.
-This means we're not interacting with the four minio1...minio4 instances directly but through the NGINX reverse-proxy.
+MinIO is load balanced by nginx, so all connections made from Django towards MinIO happens through the internal `nginx` FQDN. <br>
+Therefore, the value of `GH_MINIO_ENDPOINT` is `nginx:9000`.
+
+# Web Access
+Both Django(:8000) and MinIO(:9001) expose a Web GUI and their ports are mapped to the host machine.
+
+## Django Admin
+Open your browser at http://localhost:8000/admin to access the Django admin portal:
+  * username: `admin`
+  * password: `123123`
+
+## MinIO Console
+Open your browser at http://localhost:9001 to access the MiniIO Console:
+  * username: `minio`
+  * password: `minio123`
 
 # Developer Environment
+An alternative docker-compose file is available for **django-minio-backend** which does not copy the source files into the container, but maps them as a volume.
 **Input file**: `docker-compose.develop.yml`
 
 If you would like to develop in a Docker Compose environment, execute the following commands:
