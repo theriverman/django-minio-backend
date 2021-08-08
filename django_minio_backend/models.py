@@ -83,8 +83,8 @@ class MinioBackend(Storage):
 
         self._REPLACE_EXISTING = kwargs.get('replace_existing', False)
 
-        self.__CLIENT: Union[minio.Minio, None] = None
-        self.__CLIENT_EXTERNAL: Union[minio.Minio, None] = None
+        self.__CLIENT: Union[minio.Minio, None] = None  # This client is used for internal communication only. Communication this way should not leave the host network's perimeter
+        self.__CLIENT_FAKE: Union[minio.Minio, None] = None  # This fake client is used for pre-signed URL generation only; it does not execute HTTP requests
         self.__MINIO_ENDPOINT: str = get_setting("MINIO_ENDPOINT")
         self.__MINIO_EXTERNAL_ENDPOINT: str = get_setting("MINIO_EXTERNAL_ENDPOINT", self.__MINIO_ENDPOINT)
         self.__MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
@@ -165,7 +165,7 @@ class MinioBackend(Storage):
             return name
         return super(MinioBackend, self).get_available_name(name, max_length)
 
-    def _open(self, object_name, mode='rb', **kwargs):
+    def _open(self, object_name, mode='rb', **kwargs) -> File:
         """
         Implements the Storage._open(name,mode='rb') method
         :param name (str): object_name [path to file excluding bucket name which is implied]
@@ -235,20 +235,18 @@ class MinioBackend(Storage):
         """
         if self.is_bucket_public:
             return f'{self.base_url_external}/{self.bucket}/{name}'
+        if self.same_endpoints:
+            # in this scenario the fake client is not needed
+            client = self.client
+        else:
+            client = self.client_fake
 
         try:
-            if self.same_endpoints:
-                u: str = self.client.presigned_get_object(
-                    bucket_name=self.bucket,
-                    object_name=name.encode('utf-8'),
-                    expires=get_setting("MINIO_URL_EXPIRY_HOURS", timedelta(days=7))  # Default is 7 days
-                )
-            else:
-                u: str = self.client_external.presigned_get_object(
-                    bucket_name=self.bucket,
-                    object_name=name.encode('utf-8'),
-                    expires=get_setting("MINIO_URL_EXPIRY_HOURS", timedelta(days=7))  # Default is 7 days
-                )
+            u: str = client.presigned_get_object(
+                bucket_name=self.bucket,
+                object_name=name.encode('utf-8'),
+                expires=get_setting("MINIO_URL_EXPIRY_HOURS", timedelta(days=7))  # Default is 7 days
+            )
             return u
         except urllib3.exceptions.MaxRetryError:
             raise ConnectionError("Couldn't connect to Minio. Check django_minio_backend parameters in Django-Settings")
@@ -332,19 +330,17 @@ class MinioBackend(Storage):
 
     @property
     def client(self) -> minio.Minio:
-        """Get handle to an (already) instantiated minio.Minio instance (for internal URL access)"""
+        """Get handle to an (already) instantiated minio.Minio instance"""
         if not self.__CLIENT:
-            self.new_client()
-            return self.__CLIENT
+            return self._create_new_client()
         return self.__CLIENT
 
     @property
-    def client_external(self) -> minio.Minio:
-        """Get handle to an (already) instantiated minio.Minio instance (for external URL access)"""
-        if not self.__CLIENT_EXTERNAL:
-            self.new_client(internal=False)
-            return self.__CLIENT_EXTERNAL
-        return self.__CLIENT_EXTERNAL
+    def client_fake(self) -> minio.Minio:
+        """Get handle to an (already) instantiated FAKE minio.Minio instance for generating signed URLs for external access"""
+        if not self.__CLIENT_FAKE:
+            return self._create_new_client(fake=True)
+        return self.__CLIENT_FAKE
 
     @property
     def base_url(self) -> str:
@@ -356,7 +352,7 @@ class MinioBackend(Storage):
         """Get external base URL to MinIO"""
         return self.__BASE_URL_EXTERNAL
 
-    def new_client(self, internal: bool = True):
+    def _create_new_client(self, fake: bool = False) -> minio.Minio:
         """
         Instantiates a new Minio client and assigns it to their respective class variable
         """
@@ -369,16 +365,18 @@ class MinioBackend(Storage):
             )
 
         mc = minio.Minio(
-            endpoint=self.__MINIO_ENDPOINT if internal else self.__MINIO_EXTERNAL_ENDPOINT,
+            endpoint=self.__MINIO_EXTERNAL_ENDPOINT if fake else self.__MINIO_ENDPOINT,
             access_key=self.__MINIO_ACCESS_KEY,
             secret_key=self.__MINIO_SECRET_KEY,
-            secure=self.__MINIO_USE_HTTPS if internal else self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS,
+            secure=self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS if fake else self.__MINIO_USE_HTTPS,
             http_client=self.HTTP_CLIENT,
+            region='us-east-1' if fake else None,
         )
-        if internal:
-            self.__CLIENT = mc
+        if fake:
+            self.__CLIENT_FAKE = mc
         else:
-            self.__CLIENT_EXTERNAL = mc
+            self.__CLIENT = mc
+        return mc
 
     # MAINTENANCE
     def check_bucket_existence(self):

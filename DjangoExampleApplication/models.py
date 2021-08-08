@@ -43,7 +43,7 @@ class GenericAttachment(models.Model):
         Delete must be overridden because the inherited delete method does not call `self.image.delete()`.
         """
         # noinspection PyUnresolvedReferences
-        self.image.delete()
+        self.file.delete()
         super(GenericAttachment, self).delete(*args, **kwargs)
 
 
