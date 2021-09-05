@@ -60,6 +60,24 @@ MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = []
 # MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for MEDIA_ROOT
 # MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for STATIC_ROOT
 MINIO_BUCKET_CHECK_ON_SAVE = True  # Default: True // Creates bucket if missing, then save
+
+# Custom HTTP Client (OPTIONAL)
+import os
+import certifi
+import urllib3
+timeout = timedelta(minutes=5).seconds
+ca_certs = os.environ.get('SSL_CERT_FILE') or certifi.where()
+MINIO_HTTP_CLIENT: urllib3.poolmanager.PoolManager = urllib3.PoolManager(
+            timeout=urllib3.util.Timeout(connect=timeout, read=timeout),
+            maxsize=10,
+            cert_reqs='CERT_REQUIRED',
+            ca_certs=ca_certs,
+            retries=urllib3.Retry(
+                total=5,
+                backoff_factor=0.2,
+                status_forcelist=[500, 502, 503, 504]
+            )
+        )
 ```
 
 4. Implement your own Attachment handler and integrate **django-minio-backend**:

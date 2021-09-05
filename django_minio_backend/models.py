@@ -115,7 +115,9 @@ class MinioBackend(Storage):
             raise ConfigurationError(f'The configured bucket ({self.bucket}) must be declared either in MINIO_PRIVATE_BUCKETS or MINIO_PUBLIC_BUCKETS')
 
         # https://docs.min.io/docs/python-client-api-reference.html
-        self.HTTP_CLIENT: urllib3.poolmanager.PoolManager = self._META_KWARGS.get("http_client", None)
+        http_client_from_kwargs = self._META_KWARGS.get("http_client", None)
+        http_client_from_settings = get_setting("MINIO_HTTP_CLIENT")
+        self.HTTP_CLIENT: urllib3.poolmanager.PoolManager = http_client_from_kwargs or http_client_from_settings
 
         bucket_name_intersection: List[str] = list(set(self.PRIVATE_BUCKETS) & set(self.PUBLIC_BUCKETS))
         if bucket_name_intersection:
