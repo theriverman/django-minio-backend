@@ -68,16 +68,16 @@ import urllib3
 timeout = timedelta(minutes=5).seconds
 ca_certs = os.environ.get('SSL_CERT_FILE') or certifi.where()
 MINIO_HTTP_CLIENT: urllib3.poolmanager.PoolManager = urllib3.PoolManager(
-            timeout=urllib3.util.Timeout(connect=timeout, read=timeout),
-            maxsize=10,
-            cert_reqs='CERT_REQUIRED',
-            ca_certs=ca_certs,
-            retries=urllib3.Retry(
-                total=5,
-                backoff_factor=0.2,
-                status_forcelist=[500, 502, 503, 504]
-            )
-        )
+    timeout=urllib3.util.Timeout(connect=timeout, read=timeout),
+    maxsize=10,
+    cert_reqs='CERT_REQUIRED',
+    ca_certs=ca_certs,
+    retries=urllib3.Retry(
+        total=5,
+        backoff_factor=0.2,
+        status_forcelist=[500, 502, 503, 504]
+    )
+)
 ```
 
 4. Implement your own Attachment handler and integrate **django-minio-backend**:
