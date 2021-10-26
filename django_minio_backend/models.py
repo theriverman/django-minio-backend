@@ -146,11 +146,14 @@ class MinioBackend(Storage):
 
         # Upload object
         file_path: Path = Path(file_path_name)  # app name + file.suffix
+        content_bytes: io.BytesIO = io.BytesIO(content.read())
+        content_length: int = len(content_bytes.getvalue())
+
         self.client.put_object(
             bucket_name=self.bucket,
             object_name=file_path.as_posix(),
-            data=content,
-            length=content.size,
+            data=content_bytes,
+            length=content_length,
             content_type=self._guess_content_type(file_path_name, content),
             metadata=self._META_KWARGS.get('metadata', None),
             sse=self._META_KWARGS.get('sse', None),
