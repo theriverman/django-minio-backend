@@ -30,7 +30,7 @@ from django.utils.timezone import utc
 
 from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting
 
-__all__ = ['MinioBackend', 'get_iso_date', 'iso_date_prefix', ]
+__all__ = ['MinioBackend', 'MinioBackendStatic', 'get_iso_date', 'iso_date_prefix', ]
 
 
 def get_iso_date() -> str:
@@ -85,7 +85,7 @@ class MinioBackend(Storage):
 
         self.__CLIENT: Union[minio.Minio, None] = None  # This client is used for internal communication only. Communication this way should not leave the host network's perimeter
         self.__CLIENT_FAKE: Union[minio.Minio, None] = None  # This fake client is used for pre-signed URL generation only; it does not execute HTTP requests
-        self.__MINIO_ENDPOINT: str = get_setting("MINIO_ENDPOINT")
+        self.__MINIO_ENDPOINT: str = get_setting("MINIO_ENDPOINT", "")
         self.__MINIO_EXTERNAL_ENDPOINT: str = get_setting("MINIO_EXTERNAL_ENDPOINT", self.__MINIO_ENDPOINT)
         self.__MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
         self.__MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
@@ -331,16 +331,12 @@ class MinioBackend(Storage):
     @property
     def client(self) -> minio.Minio:
         """Get handle to an (already) instantiated minio.Minio instance"""
-        if not self.__CLIENT:
-            return self._create_new_client()
-        return self.__CLIENT
+        return self.__CLIENT or self._create_new_client()
 
     @property
     def client_fake(self) -> minio.Minio:
         """Get handle to an (already) instantiated FAKE minio.Minio instance for generating signed URLs for external access"""
-        if not self.__CLIENT_FAKE:
-            return self._create_new_client(fake=True)
-        return self.__CLIENT_FAKE
+        return self.__CLIENT_FAKE or self._create_new_client(fake=True)
 
     @property
     def base_url(self) -> str:
@@ -356,14 +352,6 @@ class MinioBackend(Storage):
         """
         Instantiates a new Minio client and assigns it to their respective class variable
         """
-        # Safety Guards
-        if not self.PRIVATE_BUCKETS or not self.PUBLIC_BUCKETS:
-            raise ConfigurationError(
-                'MINIO_PRIVATE_BUCKETS or '
-                'MINIO_PUBLIC_BUCKETS '
-                'is not configured properly in your settings.py (or equivalent)'
-            )
-
         mc = minio.Minio(
             endpoint=self.__MINIO_EXTERNAL_ENDPOINT if fake else self.__MINIO_ENDPOINT,
             access_key=self.__MINIO_ACCESS_KEY,
@@ -421,6 +409,28 @@ class MinioBackend(Storage):
                                        }
                                    ]}
         self.set_bucket_policy(self.bucket, policy_public_read_only)
+
+    def validate_settings(self):
+        """
+        validate_settings raises a ConfigurationError exception when one of the following conditions is met:
+          * Neither MINIO_PRIVATE_BUCKETS nor MINIO_PUBLIC_BUCKETS have been declared and configured with at least 1 bucket
+          * A mandatory parameter (ENDPOINT, ACCESS_KEY, SECRET_KEY or USE_HTTP) hasn't been declared and configured properly
+        """
+        # minimum 1 bucket has to be declared
+        if not (get_setting("MINIO_PRIVATE_BUCKETS") or get_setting("MINIO_PUBLIC_BUCKETS")):
+            raise ConfigurationError(
+                'Either '
+                'MINIO_PRIVATE_BUCKETS'
+                ' or '
+                'MINIO_PUBLIC_BUCKETS '
+                'must be configured in your settings.py (can be both)'
+            )
+        # mandatory parameters must be configured
+        mandatory_parameters = (self.__MINIO_ENDPOINT, self.__MINIO_ACCESS_KEY, self.__MINIO_SECRET_KEY, self.__MINIO_USE_HTTPS)
+        if any([bool(x) is False for x in mandatory_parameters]):
+            raise ConfigurationError(
+                "A mandatory parameter (ENDPOINT, ACCESS_KEY, SECRET_KEY or USE_HTTP) hasn't been configured properly"
+            )
 
 
 @deconstructible

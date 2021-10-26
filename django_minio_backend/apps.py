@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 from .utils import get_setting, ConfigurationError
-from .models import MinioBackendStatic
+from .models import MinioBackend, MinioBackendStatic
 
 
 __all__ = ['DjangoMinioBackendConfig', ]
@@ -10,6 +10,9 @@ class DjangoMinioBackendConfig(AppConfig):
     name = 'django_minio_backend'
 
     def ready(self):
+        mb = MinioBackend()
+        mb.validate_settings()
+
         consistency_check_on_start = get_setting('MINIO_CONSISTENCY_CHECK_ON_START', False)
         if consistency_check_on_start:
             from django.core.management import call_command
