@@ -89,7 +89,7 @@ class MinioBackend(Storage):
         self.__MINIO_EXTERNAL_ENDPOINT: str = get_setting("MINIO_EXTERNAL_ENDPOINT", self.__MINIO_ENDPOINT)
         self.__MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
         self.__MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
-        self.__MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS")
+        self.__MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS", False)
         self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = get_setting("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
         self.__MINIO_BUCKET_CHECK_ON_SAVE: bool = get_setting("MINIO_BUCKET_CHECK_ON_SAVE", False)
 
@@ -431,10 +431,10 @@ class MinioBackend(Storage):
                 'must be configured in your settings.py (can be both)'
             )
         # mandatory parameters must be configured
-        mandatory_parameters = (self.__MINIO_ENDPOINT, self.__MINIO_ACCESS_KEY, self.__MINIO_SECRET_KEY, self.__MINIO_USE_HTTPS)
+        mandatory_parameters = (self.__MINIO_ENDPOINT, self.__MINIO_ACCESS_KEY, self.__MINIO_SECRET_KEY)
         if any([bool(x) is False for x in mandatory_parameters]):
             raise ConfigurationError(
-                "A mandatory parameter (ENDPOINT, ACCESS_KEY, SECRET_KEY or USE_HTTP) hasn't been configured properly"
+                "A mandatory parameter (ENDPOINT, ACCESS_KEY, or SECRET_KEY) hasn't been configured properly"
             )
 
 
