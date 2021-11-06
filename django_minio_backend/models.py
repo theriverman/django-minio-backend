@@ -89,7 +89,7 @@ class MinioBackend(Storage):
         self.__MINIO_EXTERNAL_ENDPOINT: str = get_setting("MINIO_EXTERNAL_ENDPOINT", self.__MINIO_ENDPOINT)
         self.__MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
         self.__MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
-        self.__MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS")
+        self.__MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS", False)
         self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = get_setting("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
         self.__MINIO_BUCKET_CHECK_ON_SAVE: bool = get_setting("MINIO_BUCKET_CHECK_ON_SAVE", False)
 
@@ -419,7 +419,7 @@ class MinioBackend(Storage):
         """
         validate_settings raises a ConfigurationError exception when one of the following conditions is met:
           * Neither MINIO_PRIVATE_BUCKETS nor MINIO_PUBLIC_BUCKETS have been declared and configured with at least 1 bucket
-          * A mandatory parameter (ENDPOINT, ACCESS_KEY, SECRET_KEY or USE_HTTP) hasn't been declared and configured properly
+          * A mandatory parameter (MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY or MINIO_USE_HTTPS) hasn't been declared and configured properly
         """
         # minimum 1 bucket has to be declared
         if not (get_setting("MINIO_PRIVATE_BUCKETS") or get_setting("MINIO_PUBLIC_BUCKETS")):
@@ -431,10 +431,10 @@ class MinioBackend(Storage):
                 'must be configured in your settings.py (can be both)'
             )
         # mandatory parameters must be configured
-        mandatory_parameters = (self.__MINIO_ENDPOINT, self.__MINIO_ACCESS_KEY, self.__MINIO_SECRET_KEY, self.__MINIO_USE_HTTPS)
-        if any([bool(x) is False for x in mandatory_parameters]):
+        mandatory_parameters = (self.__MINIO_ENDPOINT, self.__MINIO_ACCESS_KEY, self.__MINIO_SECRET_KEY)
+        if any([bool(x) is False for x in mandatory_parameters]) or (get_setting("MINIO_USE_HTTPS") is None):
             raise ConfigurationError(
-                "A mandatory parameter (ENDPOINT, ACCESS_KEY, SECRET_KEY or USE_HTTP) hasn't been configured properly"
+                "A mandatory parameter (MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY or MINIO_USE_HTTPS) hasn't been configured properly"
             )
 
 
