@@ -419,7 +419,7 @@ class MinioBackend(Storage):
         """
         validate_settings raises a ConfigurationError exception when one of the following conditions is met:
           * Neither MINIO_PRIVATE_BUCKETS nor MINIO_PUBLIC_BUCKETS have been declared and configured with at least 1 bucket
-          * A mandatory parameter (ENDPOINT, ACCESS_KEY or SECRET_KEY) hasn't been declared and configured properly
+          * A mandatory parameter (ENDPOINT, ACCESS_KEY, SECRET_KEY or USE_HTTP) hasn't been declared and configured properly
         """
         # minimum 1 bucket has to be declared
         if not (get_setting("MINIO_PRIVATE_BUCKETS") or get_setting("MINIO_PUBLIC_BUCKETS")):
@@ -432,9 +432,9 @@ class MinioBackend(Storage):
             )
         # mandatory parameters must be configured
         mandatory_parameters = (self.__MINIO_ENDPOINT, self.__MINIO_ACCESS_KEY, self.__MINIO_SECRET_KEY)
-        if any([bool(x) is False for x in mandatory_parameters]):
+        if any([bool(x) is False for x in mandatory_parameters]) or (get_setting("MINIO_USE_HTTPS") is None):
             raise ConfigurationError(
-                "A mandatory parameter (ENDPOINT, ACCESS_KEY, or SECRET_KEY) hasn't been configured properly"
+                "A mandatory parameter (MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY or MINIO_USE_HTTPS) hasn't been configured properly"
             )
 
 
