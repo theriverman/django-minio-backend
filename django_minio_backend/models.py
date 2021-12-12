@@ -8,6 +8,7 @@ References:
 """
 import io
 import json
+import logging
 import mimetypes
 import ssl
 from datetime import datetime, timedelta
@@ -30,7 +31,9 @@ from django.utils.timezone import utc
 
 from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting
 
+
 __all__ = ['MinioBackend', 'MinioBackendStatic', 'get_iso_date', 'iso_date_prefix', ]
+logger = logging.getLogger(__name__)
 
 
 def get_iso_date() -> str:
@@ -141,8 +144,11 @@ class MinioBackend(Storage):
             self.check_bucket_existence()
 
         # Check if object with name already exists; delete if so
-        if self._REPLACE_EXISTING and self.stat(file_path_name):
-            self.delete(file_path_name)
+        try:
+            if self._REPLACE_EXISTING and self.stat(file_path_name):
+                self.delete(file_path_name)
+        except AttributeError:
+            pass
 
         # Upload object
         file_path: Path = Path(file_path_name)  # app name + file.suffix
@@ -211,9 +217,13 @@ class MinioBackend(Storage):
     def exists(self, name: str) -> bool:
         """Check if an object with name already exists"""
         object_name = Path(name).as_posix()
-        if self.stat(object_name):
-            return True
-        return False
+        try:
+            if self.stat(object_name):
+                return True
+            return False
+        except AttributeError as e:
+            logger.info(e)
+            return False
 
     def listdir(self, bucket_name: str):
         """List all objects in a bucket"""
@@ -223,10 +233,11 @@ class MinioBackend(Storage):
     def size(self, name: str) -> int:
         """Get an object's size"""
         object_name = Path(name).as_posix()
-        obj = self.stat(object_name)
-        if obj:
-            return obj.size
-        return 0
+        try:
+            obj = self.stat(object_name)
+            return obj.size if obj else 0
+        except AttributeError:
+            return 0
 
     def url(self, name: str):
         """
@@ -277,8 +288,7 @@ class MinioBackend(Storage):
         Return the last modified time (as a datetime) of the file specified by
         name. The datetime will be timezone-aware if USE_TZ=True.
         """
-        obj = self.stat(name)
-        return obj.last_modified
+        return self.stat(name).last_modified
 
     @staticmethod
     def _guess_content_type(file_path_name: str, content: InMemoryUploadedFile):
