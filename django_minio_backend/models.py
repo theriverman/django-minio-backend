@@ -288,7 +288,9 @@ class MinioBackend(Storage):
         Return the last modified time (as a datetime) of the file specified by
         name. The datetime will be timezone-aware if USE_TZ=True.
         """
-        return self.stat(name).last_modified
+        if get_setting("USE_TZ"):
+            return self.stat(name).last_modified
+        return self.stat(name).last_modified.replace(tzinfo=None)  # remove timezone info
 
     @staticmethod
     def _guess_content_type(file_path_name: str, content: InMemoryUploadedFile):
