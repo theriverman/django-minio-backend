@@ -3,19 +3,19 @@ Execute the following step to start a demo environment using Docker Compose:
 
 **Start the Docker Compose services:**
  ```shell
- docker-compose up -d
- docker-compose exec web python manage.py createsuperuser --noinput
- docker-compose exec web python manage.py collectstatic --noinput
+docker compose up -d
+docker compose exec web python manage.py createsuperuser --noinput
+docker compose exec web python manage.py collectstatic --noinput
  ```
 
 ## About docker-compose.yml
 Note the following lines in `docker-compose.yml`:
 ```yaml
- environment:
-   GH_MINIO_ENDPOINT: "nginx:9000"
-   GH_MINIO_USE_HTTPS: "false"
-   GH_MINIO_EXTERNAL_ENDPOINT: "localhost:9000"
-   GH_MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: "false"
+environment:
+  GH_MINIO_ENDPOINT: "nginx:9000"
+  GH_MINIO_USE_HTTPS: "false"
+  GH_MINIO_EXTERNAL_ENDPOINT: "localhost:9000"
+  GH_MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: "false"
 ```
 
 MinIO is load balanced by nginx, so all connections made from Django towards MinIO happens through the internal `nginx` FQDN. <br>
@@ -40,7 +40,7 @@ An alternative docker-compose file is available for **django-minio-backend** whi
 
 If you would like to develop in a Docker Compose environment, execute the following commands:
 ```shell
-docker-compose --project-name "django-minio-backend-DEV" -f docker-compose.develop.yml up -d
-docker-compose --project-name "django-minio-backend-DEV" -f docker-compose.develop.yml exec web python manage.py createsuperuser --noinput
-docker-compose --project-name "django-minio-backend-DEV" -f docker-compose.develop.yml exec web python manage.py collectstatic --noinput
+docker compose -f docker compose.develop.yml up -d
+docker compose -f docker compose.develop.yml exec web python manage.py createsuperuser --noinput
+docker compose -f docker compose.develop.yml exec web python manage.py collectstatic --noinput
 ```
