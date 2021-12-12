@@ -194,10 +194,8 @@ class MinioBackend(Storage):
         try:
             obj = self.client.stat_object(self.bucket, object_name=object_name)
             return obj
-        except (minio.error.S3Error, minio.error.ServerError):
-            return False
-        except urllib3.exceptions.MaxRetryError:
-            return False
+        except (minio.error.S3Error, minio.error.ServerError, urllib3.exceptions.MaxRetryError):
+            raise AttributeError(f'Could not stat object ({name}) in bucket ({self.bucket})')
 
     def delete(self, name: str):
         """
