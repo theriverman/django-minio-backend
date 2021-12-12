@@ -40,7 +40,7 @@ An alternative docker-compose file is available for **django-minio-backend** whi
 
 If you would like to develop in a Docker Compose environment, execute the following commands:
 ```shell
-docker compose -f docker compose.develop.yml up -d
-docker compose -f docker compose.develop.yml exec web python manage.py createsuperuser --noinput
-docker compose -f docker compose.develop.yml exec web python manage.py collectstatic --noinput
+docker compose -f docker-compose.develop.yml up -d
+docker compose -f docker-compose.develop.yml exec web python manage.py createsuperuser --noinput
+docker compose -f docker-compose.develop.yml exec web python manage.py collectstatic --noinput
 ```
