@@ -119,7 +119,7 @@ The value of `STATIC_URL` is ignored, but it must be defined otherwise Django wi
 The value set in `MINIO_STATIC_FILES_BUCKET` must be added either to `MINIO_PRIVATE_BUCKETS` or `MINIO_PUBLIC_BUCKETS`,
 otherwise **django-minio-backend** will raise an exception. This setting determines the privacy of generated file URLs which can be unsigned public or signed private.  
 
-**Note:** If `MINIO_STATIC_FILES_BUCKET` is not set, the default value (`auto-generated-static-media-files`) will be used. Policy setting for default buckets is **private**.
+**Note:** If `MINIO_STATIC_FILES_BUCKET` is not set, the default value (`auto-generated-bucket-static-files`) will be used. Policy setting for default buckets is **private**.
 
 ### Default File Storage Support
 **django-minio-backend** can be configured as a default file storage.
