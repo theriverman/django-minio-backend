@@ -93,6 +93,7 @@ class MinioBackend(Storage):
         self.__MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
         self.__MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
         self.__MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS")
+        self.__MINIO_REGION: str = get_setting("MINIO_REGION", None)
         self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = get_setting("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
         self.__MINIO_BUCKET_CHECK_ON_SAVE: bool = get_setting("MINIO_BUCKET_CHECK_ON_SAVE", False)
 
@@ -373,7 +374,7 @@ class MinioBackend(Storage):
             secret_key=self.__MINIO_SECRET_KEY,
             secure=self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS if fake else self.__MINIO_USE_HTTPS,
             http_client=self.HTTP_CLIENT,
-            region='us-east-1' if fake else None,
+            region=self.__MINIO_REGION,
         )
         if fake:
             self.__CLIENT_FAKE = mc
