@@ -93,6 +93,7 @@ class MinioBackend(Storage):
         self.__MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
         self.__MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
         self.__MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS")
+        self.__MINIO_REGION: str = get_setting("MINIO_REGION", "us-east-1") # MINIO defaults to "us-east-1" when region is set to None
         self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = get_setting("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
         self.__MINIO_BUCKET_CHECK_ON_SAVE: bool = get_setting("MINIO_BUCKET_CHECK_ON_SAVE", False)
 
@@ -248,7 +249,8 @@ class MinioBackend(Storage):
         :return: (str) URL to object
         """
         if self.is_bucket_public:
-            return f'{self.base_url_external}/{self.bucket}/{name}'
+            base_url = self.client._base_url.build("GET", self.__MINIO_REGION).geturl()
+            return f'{base_url}{self.bucket}/{name}'
         if self.same_endpoints:
             # in this scenario the fake client is not needed
             client = self.client
@@ -373,7 +375,7 @@ class MinioBackend(Storage):
             secret_key=self.__MINIO_SECRET_KEY,
             secure=self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS if fake else self.__MINIO_USE_HTTPS,
             http_client=self.HTTP_CLIENT,
-            region='us-east-1' if fake else None,
+            region=self.__MINIO_REGION,
         )
         if fake:
             self.__CLIENT_FAKE = mc
