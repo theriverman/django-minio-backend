@@ -206,11 +206,8 @@ See [README.Docker.md](README.Docker.md) for a real-life Docker Compose demonstr
 
 ## Compatibility
   * Django 2.2 or later
-  * Python 3.6.0 or later
+  * Python 3.8.0 or later
   * MinIO SDK 7.0.2 or later
-
-**Note:** This library relies heavily on [PEP 484 -- Type Hints](https://www.python.org/dev/peps/pep-0484/) 
-which was introduced in *Python 3.5.0*.
 
 ## Contribution
 Please find the details in [CONTRIBUTE.md](CONTRIBUTE.md)

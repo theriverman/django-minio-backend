@@ -87,13 +87,13 @@ class MinioBackend(Storage):
         self._REPLACE_EXISTING = kwargs.get('replace_existing', False)
 
         self.__CLIENT: Union[minio.Minio, None] = None  # This client is used for internal communication only. Communication this way should not leave the host network's perimeter
-        self.__CLIENT_FAKE: Union[minio.Minio, None] = None  # This fake client is used for pre-signed URL generation only; it does not execute HTTP requests
+        self.__CLIENT_EXT: Union[minio.Minio, None] = None  # This client is used for external communication. This client is necessary for creating region-aware pre-signed URLs
         self.__MINIO_ENDPOINT: str = get_setting("MINIO_ENDPOINT", "")
         self.__MINIO_EXTERNAL_ENDPOINT: str = get_setting("MINIO_EXTERNAL_ENDPOINT", self.__MINIO_ENDPOINT)
         self.__MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
         self.__MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
         self.__MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS")
-        self.__MINIO_REGION: str = get_setting("MINIO_REGION", "us-east-1") # MINIO defaults to "us-east-1" when region is set to None
+        self.__MINIO_REGION: str = get_setting("MINIO_REGION", "us-east-1")  # MINIO defaults to "us-east-1" when region is set to None
         self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = get_setting("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
         self.__MINIO_BUCKET_CHECK_ON_SAVE: bool = get_setting("MINIO_BUCKET_CHECK_ON_SAVE", False)
 
@@ -207,7 +207,7 @@ class MinioBackend(Storage):
     def delete(self, name: str):
         """
         Deletes an object in Django and MinIO.
-        This method is called only when an object is deleted from it's own `change view` ie.:
+        This method is called only when an object is deleted from its own `change view` ie.:
         http://django.test/admin/upload/privateattachment/13/change/
         This method is NOT called during a bulk_delete order!
         :param name: File object name
@@ -248,15 +248,14 @@ class MinioBackend(Storage):
         :param name: (str) file path + file name + suffix
         :return: (str) URL to object
         """
-        if self.is_bucket_public:
-            base_url = self.client._base_url.build("GET", self.__MINIO_REGION).geturl()
-            return f'{base_url}{self.bucket}/{name}'
-        if self.same_endpoints:
-            # in this scenario the fake client is not needed
-            client = self.client
-        else:
-            client = self.client_fake
+        client = self.client if self.same_endpoints else self.client_external
 
+        if self.is_bucket_public:
+            # noinspection PyProtectedMember
+            base_url = client._base_url.build("GET", self.__MINIO_REGION).geturl()
+            return f'{base_url}{self.bucket}/{name}'
+
+        # private bucket
         try:
             u: str = client.presigned_get_object(
                 bucket_name=self.bucket,
@@ -347,13 +346,16 @@ class MinioBackend(Storage):
 
     @property
     def client(self) -> minio.Minio:
-        """Get handle to an (already) instantiated minio.Minio instance"""
+        """
+        Get handle to an (already) instantiated minio.Minio instance. This is the default Client.
+        If "MINIO_EXTERNAL_ENDPOINT" != MINIO_ENDPOINT, this client is used for internal communication only
+        """
         return self.__CLIENT or self._create_new_client()
 
     @property
-    def client_fake(self) -> minio.Minio:
-        """Get handle to an (already) instantiated FAKE minio.Minio instance for generating signed URLs for external access"""
-        return self.__CLIENT_FAKE or self._create_new_client(fake=True)
+    def client_external(self) -> minio.Minio:
+        """Get handle to an (already) instantiated EXTERNAL minio.Minio instance for generating pre-signed URLs for external access"""
+        return self.__CLIENT_EXT or self._create_new_client(external=True)
 
     @property
     def base_url(self) -> str:
@@ -365,23 +367,28 @@ class MinioBackend(Storage):
         """Get external base URL to MinIO"""
         return self.__BASE_URL_EXTERNAL
 
-    def _create_new_client(self, fake: bool = False) -> minio.Minio:
+    def _create_new_client(self, external: bool = False) -> minio.Minio:
         """
         Instantiates a new Minio client and assigns it to their respective class variable
+        :param external: If True, the returned value is self.__CLIENT_EXT instead of self.__CLIENT
         """
-        mc = minio.Minio(
-            endpoint=self.__MINIO_EXTERNAL_ENDPOINT if fake else self.__MINIO_ENDPOINT,
+        self.__CLIENT = minio.Minio(
+            endpoint=self.__MINIO_ENDPOINT,
             access_key=self.__MINIO_ACCESS_KEY,
             secret_key=self.__MINIO_SECRET_KEY,
-            secure=self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS if fake else self.__MINIO_USE_HTTPS,
+            secure=self.__MINIO_USE_HTTPS,
             http_client=self.HTTP_CLIENT,
             region=self.__MINIO_REGION,
         )
-        if fake:
-            self.__CLIENT_FAKE = mc
-        else:
-            self.__CLIENT = mc
-        return mc
+        self.__CLIENT_EXT = minio.Minio(
+            endpoint=self.__MINIO_EXTERNAL_ENDPOINT,
+            access_key=self.__MINIO_ACCESS_KEY,
+            secret_key=self.__MINIO_SECRET_KEY,
+            secure=self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS,
+            http_client=self.HTTP_CLIENT,
+            region=self.__MINIO_REGION,
+        )
+        return self.__CLIENT_EXT if external else self.__CLIENT
 
     # MAINTENANCE
     def check_bucket_existence(self):
