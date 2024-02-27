@@ -49,6 +49,19 @@ def iso_date_prefix(_, file_name_ext: str) -> str:
     return f"{get_iso_date()}/{file_name_ext}"
 
 
+class S3File(File):
+    """A file returned from the Minio server"""
+
+    def __init__(self, file, name, storage):
+        super().__init__(file, name)
+        self._storage = storage
+
+    def open(self, mode=None):
+        if self.closed:
+            self.file = self._storage.open(self.name, mode or "rb").file
+        return super().open(mode)
+
+
 @deconstructible
 class MinioBackend(Storage):
     """
@@ -188,7 +201,7 @@ class MinioBackend(Storage):
             raise ValueError('Files retrieved from MinIO are read-only. Use save() method to override contents')
         try:
             resp = self.client.get_object(self.bucket, object_name, kwargs)
-            file = File(file=io.BytesIO(resp.read()), name=object_name)
+            file = S3File(file=io.BytesIO(resp.read()), name=object_name, storage=self)
         finally:
             resp.close()
             resp.release_conn()
