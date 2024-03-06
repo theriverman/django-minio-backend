@@ -1,2 +1,2 @@
-from .apps import *
-from .models import *
+from .apps import *  # noqa
+from .models import *  # noqa

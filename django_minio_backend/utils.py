@@ -4,7 +4,12 @@ from typing import Union, List
 from django.conf import settings
 
 
-__all__ = ['MinioServerStatus', 'PrivatePublicMixedError', 'ConfigurationError', 'get_setting', ]
+__all__ = [
+    "MinioServerStatus",
+    "PrivatePublicMixedError",
+    "ConfigurationError",
+    "get_setting",
+]
 
 
 class MinioServerStatus:
@@ -19,6 +24,7 @@ class MinioServerStatus:
             print("OK")
         ```
     """
+
     def __init__(self, request: Union[urllib3.response.HTTPResponse, None]):
         self._request = request
         self._bool = False
@@ -26,19 +32,27 @@ class MinioServerStatus:
         self.status = None
         self.data = None
 
-        self.__OK = 'MinIO is available'
-        self.___NOK = 'MinIO is NOT available'
+        self.__OK = "MinIO is available"
+        self.___NOK = "MinIO is NOT available"
 
         if not self._request:
-            self.add_message('There was no HTTP request provided for MinioServerStatus upon initialisation.')
+            self.add_message(
+                "There was no HTTP request provided for MinioServerStatus upon initialisation."
+            )
         else:
             self.status = self._request.status
-            self.data = self._request.data.decode() if self._request.data else 'No data available'
-            if self.status == 403:  # Request was a legal, but the server refuses to respond to it -> it's running fine
+            self.data = (
+                self._request.data.decode()
+                if self._request.data
+                else "No data available"
+            )
+            if (
+                self.status == 403
+            ):  # Request was a legal, but the server refuses to respond to it -> it's running fine
                 self._bool = True
             else:
                 self._details.append(self.__OK)
-                self._details.append('Reason: ' + self.data)
+                self._details.append("Reason: " + self.data)
 
     def __bool__(self):
         return self._bool
@@ -52,7 +66,7 @@ class MinioServerStatus:
 
     @property
     def details(self):
-        return '\n'.join(self._details)
+        return "\n".join(self._details)
 
     def __repr__(self):
         if self.is_available:
@@ -62,11 +76,13 @@ class MinioServerStatus:
 
 class PrivatePublicMixedError(Exception):
     """Raised on public|private bucket configuration collisions"""
+
     pass
 
 
 class ConfigurationError(Exception):
     """Raised on django-minio-backend configuration errors"""
+
     pass
 
 

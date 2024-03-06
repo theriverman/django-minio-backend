@@ -7,29 +7,45 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('contenttypes', '0002_remove_content_type_name'),
-        ('DjangoExampleApplication', '0001_initial'),
+        ("contenttypes", "0002_remove_content_type_name"),
+        ("DjangoExampleApplication", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='privateattachment',
-            name='content_type',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='contenttypes.contenttype', verbose_name='Content Type'),
+            model_name="privateattachment",
+            name="content_type",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="contenttypes.contenttype",
+                verbose_name="Content Type",
+            ),
         ),
         migrations.AlterField(
-            model_name='privateattachment',
-            name='object_id',
-            field=models.PositiveIntegerField(blank=True, null=True, verbose_name="Related Object's ID"),
+            model_name="privateattachment",
+            name="object_id",
+            field=models.PositiveIntegerField(
+                blank=True, null=True, verbose_name="Related Object's ID"
+            ),
         ),
         migrations.AlterField(
-            model_name='publicattachment',
-            name='content_type',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='contenttypes.contenttype', verbose_name='Content Type'),
+            model_name="publicattachment",
+            name="content_type",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="contenttypes.contenttype",
+                verbose_name="Content Type",
+            ),
         ),
         migrations.AlterField(
-            model_name='publicattachment',
-            name='object_id',
-            field=models.PositiveIntegerField(blank=True, null=True, verbose_name="Related Object's ID"),
+            model_name="publicattachment",
+            name="object_id",
+            field=models.PositiveIntegerField(
+                blank=True, null=True, verbose_name="Related Object's ID"
+            ),
         ),
     ]

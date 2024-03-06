@@ -1,15 +1,14 @@
 import uuid
-import datetime
+from datetime import datetime, timezone
 from django.db import models
 from django.db.models.fields.files import FieldFile
-from django.utils.timezone import utc
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django_minio_backend import MinioBackend, iso_date_prefix
 
 
 def get_iso_date() -> str:
-    now = datetime.datetime.utcnow().replace(tzinfo=utc)
+    now = datetime.utcnow().replace(tzinfo=timezone.utc)
     return f"{now.year}-{now.month}-{now.day}"
 
 
@@ -17,9 +16,13 @@ class Image(models.Model):
     """
     This is just for uploaded image
     """
+
     objects = models.Manager()
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    image = models.ImageField(upload_to=iso_date_prefix, storage=MinioBackend(bucket_name='django-backend-dev-public'))
+    image = models.ImageField(
+        upload_to=iso_date_prefix,
+        storage=MinioBackend(bucket_name="django-backend-dev-public"),
+    )
 
     def delete(self, *args, **kwargs):
         """
@@ -34,6 +37,7 @@ class GenericAttachment(models.Model):
     """
     This is for demonstrating uploads to the default file storage
     """
+
     objects = models.Manager()
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     file = models.FileField(verbose_name="Object Upload (to default storage)")
@@ -79,16 +83,25 @@ class PublicAttachment(models.Model):
         return str(self.file)
 
     id = models.AutoField(primary_key=True, verbose_name="Public Attachment ID")
-    content_type: ContentType = models.ForeignKey(ContentType, null=True, blank=True, on_delete=models.CASCADE,
-                                                  verbose_name="Content Type")
-    object_id = models.PositiveIntegerField(null=True, blank=True, verbose_name="Related Object's ID")
+    content_type: ContentType = models.ForeignKey(
+        ContentType,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        verbose_name="Content Type",
+    )
+    object_id = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name="Related Object's ID"
+    )
     content_object = GenericForeignKey("content_type", "object_id")
 
-    file: FieldFile = models.FileField(verbose_name="Object Upload",
-                                       storage=MinioBackend(  # Configure MinioBackend as storage backend here
-                                           bucket_name='django-backend-dev-public',
-                                       ),
-                                       upload_to=iso_date_prefix)
+    file: FieldFile = models.FileField(
+        verbose_name="Object Upload",
+        storage=MinioBackend(  # Configure MinioBackend as storage backend here
+            bucket_name="django-backend-dev-public",
+        ),
+        upload_to=iso_date_prefix,
+    )
 
 
 class PrivateAttachment(models.Model):
@@ -122,13 +135,22 @@ class PrivateAttachment(models.Model):
         return str(self.file)
 
     id = models.AutoField(primary_key=True, verbose_name="Public Attachment ID")
-    content_type: ContentType = models.ForeignKey(ContentType, null=True, blank=True, on_delete=models.CASCADE,
-                                                  verbose_name="Content Type")
-    object_id = models.PositiveIntegerField(null=True, blank=True, verbose_name="Related Object's ID")
+    content_type: ContentType = models.ForeignKey(
+        ContentType,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        verbose_name="Content Type",
+    )
+    object_id = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name="Related Object's ID"
+    )
     content_object = GenericForeignKey("content_type", "object_id")
 
-    file: FieldFile = models.FileField(verbose_name="Object Upload",
-                                       storage=MinioBackend(  # Configure MinioBackend as storage backend here
-                                           bucket_name='django-backend-dev-private',
-                                       ),
-                                       upload_to=set_file_path_name)
+    file: FieldFile = models.FileField(
+        verbose_name="Object Upload",
+        storage=MinioBackend(  # Configure MinioBackend as storage backend here
+            bucket_name="django-backend-dev-private",
+        ),
+        upload_to=set_file_path_name,
+    )

@@ -12,33 +12,101 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('contenttypes', '0002_remove_content_type_name'),
+        ("contenttypes", "0002_remove_content_type_name"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Image',
+            name="Image",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('image', models.ImageField(storage=django_minio_backend.models.MinioBackend(bucket_name='django-backend-dev-public'), upload_to=django_minio_backend.models.iso_date_prefix)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "image",
+                    models.ImageField(
+                        storage=django_minio_backend.models.MinioBackend(
+                            bucket_name="django-backend-dev-public"
+                        ),
+                        upload_to=django_minio_backend.models.iso_date_prefix,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='PublicAttachment',
+            name="PublicAttachment",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False, verbose_name='Public Attachment ID')),
-                ('object_id', models.PositiveIntegerField(verbose_name="Related Object's ID")),
-                ('file', models.FileField(storage=django_minio_backend.models.MinioBackend(bucket_name='django-backend-dev-public'), upload_to=django_minio_backend.models.iso_date_prefix, verbose_name='Object Upload')),
-                ('content_type', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='contenttypes.contenttype', verbose_name='Content Type')),
+                (
+                    "id",
+                    models.AutoField(
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="Public Attachment ID",
+                    ),
+                ),
+                (
+                    "object_id",
+                    models.PositiveIntegerField(verbose_name="Related Object's ID"),
+                ),
+                (
+                    "file",
+                    models.FileField(
+                        storage=django_minio_backend.models.MinioBackend(
+                            bucket_name="django-backend-dev-public"
+                        ),
+                        upload_to=django_minio_backend.models.iso_date_prefix,
+                        verbose_name="Object Upload",
+                    ),
+                ),
+                (
+                    "content_type",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="contenttypes.contenttype",
+                        verbose_name="Content Type",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='PrivateAttachment',
+            name="PrivateAttachment",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False, verbose_name='Public Attachment ID')),
-                ('object_id', models.PositiveIntegerField(verbose_name="Related Object's ID")),
-                ('file', models.FileField(storage=django_minio_backend.models.MinioBackend(bucket_name='django-backend-dev-private'), upload_to=DjangoExampleApplication.models.PrivateAttachment.set_file_path_name, verbose_name='Object Upload')),
-                ('content_type', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='contenttypes.contenttype', verbose_name='Content Type')),
+                (
+                    "id",
+                    models.AutoField(
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="Public Attachment ID",
+                    ),
+                ),
+                (
+                    "object_id",
+                    models.PositiveIntegerField(verbose_name="Related Object's ID"),
+                ),
+                (
+                    "file",
+                    models.FileField(
+                        storage=django_minio_backend.models.MinioBackend(
+                            bucket_name="django-backend-dev-private"
+                        ),
+                        upload_to=DjangoExampleApplication.models.PrivateAttachment.set_file_path_name,
+                        verbose_name="Object Upload",
+                    ),
+                ),
+                (
+                    "content_type",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="contenttypes.contenttype",
+                        verbose_name="Content Type",
+                    ),
+                ),
             ],
         ),
     ]

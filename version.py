@@ -45,11 +45,10 @@ from subprocess import Popen, PIPE
 def call_git_describe():
     # noinspection PyBroadException
     try:
-        p = Popen(['git', 'describe', '--tags'],
-                  stdout=PIPE, stderr=PIPE)
+        p = Popen(["git", "describe", "--tags"], stdout=PIPE, stderr=PIPE)
         p.stderr.close()
         line = p.stdout.readlines()[0]
-        return line.strip().decode('utf-8')
+        return line.strip().decode("utf-8")
 
     except Exception:
         return None
@@ -58,8 +57,9 @@ def call_git_describe():
 def is_dirty():
     # noinspection PyBroadException
     try:
-        p = Popen(["git", "diff-index", "--name-only", "HEAD"],
-                  stdout=PIPE, stderr=PIPE)
+        p = Popen(
+            ["git", "diff-index", "--name-only", "HEAD"], stdout=PIPE, stderr=PIPE
+        )
         p.stderr.close()
         lines = p.stdout.readlines()
         return len(lines) > 0
