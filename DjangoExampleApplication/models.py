@@ -1,9 +1,11 @@
 import uuid
 from datetime import datetime, timezone
+
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models.fields.files import FieldFile
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
+
 from django_minio_backend import MinioBackend, iso_date_prefix
 
 

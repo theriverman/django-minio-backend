@@ -1,7 +1,7 @@
 from django.apps import AppConfig
-from .utils import get_setting, ConfigurationError
-from .models import MinioBackend, MinioBackendStatic
 
+from .models import MinioBackend, MinioBackendStatic
+from .utils import ConfigurationError, get_setting
 
 __all__ = [
     "DjangoMinioBackendConfig",

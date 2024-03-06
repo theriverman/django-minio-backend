@@ -1,10 +1,10 @@
 """
-django-minio-backend
-A MinIO-compatible custom storage backend for Django
+django-minio-backend-five
+A MinIO-compatible custom storage backend for Django 5, based on django-minio-backend
 
 References:
   * https://github.com/minio/minio-py
-  * https://docs.djangoproject.com/en/3.2/howto/custom-file-storage/
+  * https://docs.djangoproject.com/en/4.2/howto/custom-file-storage/
 """
 
 import io
@@ -14,7 +14,7 @@ import mimetypes
 import ssl
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Union, List
+from typing import List, Union
 
 # noinspection PyPackageRequirements MinIO_requirement
 import certifi
@@ -31,12 +31,11 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.deconstruct import deconstructible
 
 from .utils import (
+    ConfigurationError,
     MinioServerStatus,
     PrivatePublicMixedError,
-    ConfigurationError,
     get_setting,
 )
-
 
 __all__ = [
     "MinioBackend",

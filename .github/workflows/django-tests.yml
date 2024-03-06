@@ -3,7 +3,7 @@ name: Django Unit Tests
 on:
   push:
     branches:
-      - '**'
+      - "**"
 
 jobs:
   job-run-django-app-tests:
@@ -11,15 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Checkout the repository
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       # Start the minIO container
       - name: Start the minIO container
         run: docker run --name miniotest -p 9000:9000 -d minio/minio server /data
       # Setup Python
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v1
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: 3.10
       # Install Dependencies
       - name: Install pypa/build
         run: >-

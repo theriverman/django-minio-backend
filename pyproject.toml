@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+description = "A Fork of The django-minio-backend by Kristof Daja (theriverman), provides a wrapper around the MinIO Python Library. Now with Django 5 Support"
+name = "django-minio-backend-five"
+version = "3.5.3"
+authors = [{ name = "Habibul Rahman Qalbi", email = "habi6799@gmail.com" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["Django>=4.2", "minio>=7.0.2"]
+license = { file = "LICENSE" }
+keywords = [
+    "django",
+    "minio",
+    "backend",
+    "django-minio",
+    "django-minio-backend",
+    "minio-backend",
+]
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.0",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: Content Management System",
+    "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
+]
+
+
+[project.urls]
+Homepage = "https://github.com/upchunk/django-minio-backend"
+Repository = "https://github.com/upchunk/django-minio-backend"

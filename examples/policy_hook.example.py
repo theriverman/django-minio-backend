@@ -1,6 +1,5 @@
 from typing import List, Tuple
 
-
 bucket_name: str = "my-very-public-bucket"
 
 
