@@ -1,15 +1,15 @@
 import uuid
 import datetime
+from datetime import timezone
 from django.db import models
 from django.db.models.fields.files import FieldFile
-from django.utils.timezone import utc
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django_minio_backend import MinioBackend, iso_date_prefix
 
 
 def get_iso_date() -> str:
-    now = datetime.datetime.utcnow().replace(tzinfo=utc)
+    now = datetime.datetime.utcnow().replace(tzinfo=timezone.utc)
     return f"{now.year}-{now.month}-{now.day}"
 
 

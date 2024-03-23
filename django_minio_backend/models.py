@@ -11,7 +11,7 @@ import json
 import logging
 import mimetypes
 import ssl
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Union, List
 
@@ -27,7 +27,6 @@ from django.core.files import File
 from django.core.files.storage import Storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.deconstruct import deconstructible
-from django.utils.timezone import utc
 
 from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting
 
@@ -38,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 def get_iso_date() -> str:
     """Get current date in ISO8601 format [year-month-day] as string"""
-    now = datetime.utcnow().replace(tzinfo=utc)
+    now = datetime.utcnow().replace(tzinfo=timezone.utc)
     return f"{now.year}-{now.month}-{now.day}"
 
 
