@@ -205,7 +205,7 @@ To learn more about Docker networking, see [Networking overview](https://docs.do
 See [README.Docker.md](README.Docker.md) for a real-life Docker Compose demonstration.
 
 ## Compatibility
-  * Django 2.2 or later
+  * Django 3.2 or later
   * Python 3.8.0 or later
   * MinIO SDK 7.0.2 or later
 
