@@ -24,15 +24,13 @@ setup(
     author='Kristof Daja (theriverman)',
     author_email='kristof@daja.hu',
     install_requires=[
-        'Django>=2.2.2',
+        'Django>=3.2',
         'minio>=7.0.2'
     ],
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',
-        'Framework :: Django :: 2.2',
-        'Framework :: Django :: 3.0',
-        'Framework :: Django :: 3.1',
+        'Framework :: Django :: 3.2',
         'Framework :: Django :: 4.0',
         'Framework :: Django :: 4.1',
         'Intended Audience :: Developers',
@@ -43,6 +41,7 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content :: Content Management System',
         'Topic :: Internet :: WWW/HTTP :: WSGI :: Application',
