@@ -170,6 +170,6 @@ MINIO_CONSISTENCY_CHECK_ON_START = True
 MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = [
     # ('django-backend-dev-private', dummy_policy)
 ]
-MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for STATIC_ROOT
-MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for MEDIA_ROOT
+MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for MEDIA_ROOT
+MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for STATIC_ROOT
 MINIO_BUCKET_CHECK_ON_SAVE = False  # Create bucket if missing, then save
