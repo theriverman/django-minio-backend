@@ -271,7 +271,7 @@ class MinioBackend(Storage):
         try:
             u: str = client.presigned_get_object(
                 bucket_name=self.bucket,
-                object_name=name.encode('utf-8'),
+                object_name=name,
                 expires=get_setting("MINIO_URL_EXPIRY_HOURS", datetime.timedelta(days=7))  # Default is 7 days
             )
             return u
