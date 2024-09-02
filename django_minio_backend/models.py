@@ -11,7 +11,7 @@ import json
 import logging
 import mimetypes
 import ssl
-from datetime import datetime, timedelta, timezone
+import datetime
 from pathlib import Path
 from typing import Union, List
 
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 def get_iso_date() -> str:
     """Get current date in ISO8601 format [year-month-day] as string"""
-    now = datetime.utcnow().replace(tzinfo=timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     return f"{now.year}-{now.month}-{now.day}"
 
 
@@ -148,7 +148,7 @@ class MinioBackend(Storage):
     def _save(self, file_path_name: str, content: InMemoryUploadedFile) -> str:
         """
         Saves file to Minio by implementing Minio.put_object()
-        :param file_path_name (str): Path to file + file name + file extension | ie.: images/2018-12-31/cat.png
+        :param file_path_name (str): Path to file + file name + file extension | i.e.: images/2018-12-31/cat.png
         :param content (InMemoryUploadedFile): File object
         :return:
         """
@@ -219,7 +219,7 @@ class MinioBackend(Storage):
     def delete(self, name: str):
         """
         Deletes an object in Django and MinIO.
-        This method is called only when an object is deleted from its own `change view` ie.:
+        This method is called only when an object is deleted from its own `change view` i.e.:
         http://django.test/admin/upload/privateattachment/13/change/
         This method is NOT called during a bulk_delete order!
         :param name: File object name
@@ -272,7 +272,7 @@ class MinioBackend(Storage):
             u: str = client.presigned_get_object(
                 bucket_name=self.bucket,
                 object_name=name.encode('utf-8'),
-                expires=get_setting("MINIO_URL_EXPIRY_HOURS", timedelta(days=7))  # Default is 7 days
+                expires=get_setting("MINIO_URL_EXPIRY_HOURS", datetime.timedelta(days=7))  # Default is 7 days
             )
             return u
         except urllib3.exceptions.MaxRetryError:

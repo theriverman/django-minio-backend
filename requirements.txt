@@ -1,4 +1,4 @@
 Django>=3.2
-minio==7.2.7
+minio>=7.2.8
 Pillow
 setuptools

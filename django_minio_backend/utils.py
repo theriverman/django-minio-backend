@@ -19,7 +19,7 @@ class MinioServerStatus:
             print("OK")
         ```
     """
-    def __init__(self, request: Union[urllib3.response.HTTPResponse, None]):
+    def __init__(self, request: Union[urllib3.response.BaseHTTPResponse, None]):
         self._request = request
         self._bool = False
         self._details: List[str] = []
