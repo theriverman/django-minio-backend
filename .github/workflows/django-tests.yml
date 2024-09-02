@@ -16,10 +16,10 @@ jobs:
       - name: Start the minIO container
         run: docker run --name miniotest -p 9000:9000 -d minio/minio server /data
       # Setup Python
-      - name: Set up Python 3.8
+      - name: Set up Python 3.12
         uses: actions/setup-python@v1
         with:
-          python-version: 3.8
+          python-version: 3.12
       # Install Dependencies
       - name: Install pypa/build
         run: >-
