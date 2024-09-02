@@ -29,7 +29,7 @@ class ImageTestCase(TestCase):
     def test_url_generation_works(self):
         """Accessing the value of obj.image.url"""
         val = URLValidator()
-        val(self.obj.image.url)  # 1st make sure it's an URL
+        val(self.obj.image.url)  # 1st make sure it's a URL
         self.assertTrue('audience-868074_1920' in self.obj.image.url)  # 2nd make sure our filename matches
 
     def test_read_image_size(self):
@@ -52,7 +52,7 @@ class PublicAttachmentTestCase(TestCase):
     def test_url_generation_works(self):
         """Accessing the value of obj.file.url"""
         val = URLValidator()
-        val(self.obj.file.url)  # 1st make sure it's an URL
+        val(self.obj.file.url)  # 1st make sure it's a URL
         self.assertTrue('public_audience-868074_1920' in self.obj.file.url)  # 2nd make sure our filename matches
 
     def test_read_file_size(self):
@@ -78,7 +78,7 @@ class PrivateAttachmentTestCase(TestCase):
     def test_url_generation_works(self):
         """Accessing the value of obj.file.url"""
         val = URLValidator()
-        val(self.obj.file.url)  # 1st make sure it's an URL
+        val(self.obj.file.url)  # 1st make sure it's a URL
         self.assertTrue('private_audience-868074_1920' in self.obj.file.url)  # 2nd make sure our filename matches
 
     def test_read_file_size(self):

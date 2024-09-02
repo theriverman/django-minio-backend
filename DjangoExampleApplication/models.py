@@ -1,6 +1,5 @@
 import uuid
 import datetime
-from datetime import timezone
 from django.db import models
 from django.db.models.fields.files import FieldFile
 from django.contrib.contenttypes.models import ContentType
@@ -9,7 +8,8 @@ from django_minio_backend import MinioBackend, iso_date_prefix
 
 
 def get_iso_date() -> str:
-    now = datetime.datetime.utcnow().replace(tzinfo=timezone.utc)
+    """Get current date in ISO8601 format [year-month-day] as string"""
+    now = datetime.datetime.now(datetime.UTC)
     return f"{now.year}-{now.month}-{now.day}"
 
 
