@@ -116,8 +116,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 STATIC_URL = '/static/'
-STATICFILES_STORAGE = 'django_minio_backend.models.MinioBackendStatic'
-DEFAULT_FILE_STORAGE = 'django_minio_backend.models.MinioBackend'
 
 # #################### #
 # django_minio_backend #
@@ -173,3 +171,12 @@ MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = [
 MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for STATIC_ROOT
 MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for MEDIA_ROOT
 MINIO_BUCKET_CHECK_ON_SAVE = False  # Create bucket if missing, then save
+
+STORAGES = {  # -- ADDED IN Django 5.1
+    "default": {
+        "BACKEND": "django_minio_backend.models.MinioBackend",
+    },
+    "staticfiles": {
+        "BACKEND": "django_minio_backend.models.MinioBackendStatic",
+    },
+}

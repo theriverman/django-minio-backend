@@ -10,6 +10,12 @@ class DjangoMinioBackendConfig(AppConfig):
     name = 'django_minio_backend'
 
     def ready(self):
+        # Validate configuration for Django 5.1=< projects
+        if STATICFILES_STORAGE := get_setting('STATICFILES_STORAGE'):
+            if STATICFILES_STORAGE.endswith(MinioBackendStatic.__name__):
+                raise ConfigurationError("STATICFILES_STORAGE and DEFAULT_FILE_STORAGE were replaced by STORAGES. "
+                                         "See django-minio-backend's README for more information.")
+
         mb = MinioBackend()
         mb.validate_settings()
 
@@ -26,7 +32,8 @@ class DjangoMinioBackendConfig(AppConfig):
             raise ConfigurationError('MINIO_EXTERNAL_ENDPOINT must be configured together with MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
 
         # Validate static storage and default storage configurations
-        staticfiles_storage: str = get_setting('STATICFILES_STORAGE')
-        if staticfiles_storage.endswith(MinioBackendStatic.__name__):
+        storages = get_setting('STORAGES')
+        staticfiles_backend = storages["staticfiles"]["BACKEND"]
+        if staticfiles_backend.endswith(MinioBackendStatic.__name__):
             mbs = MinioBackendStatic()
             mbs.check_bucket_existence()

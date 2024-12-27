@@ -42,6 +42,15 @@ because this operation can noticeably slow down Django's boot time when many buc
 from datetime import timedelta
 from typing import List, Tuple
 
+STORAGES = {  # -- ADDED IN Django 5.1
+    "default": {
+        "BACKEND": "django_minio_backend.models.MinioBackend",
+    },
+    # "staticfiles": {  # -- OPTIONAL
+    #     "BACKEND": "django_minio_backend.models.MinioBackendStatic",
+    # },
+}
+
 MINIO_ENDPOINT = 'minio.your-company.co.uk'
 MINIO_EXTERNAL_ENDPOINT = "external-minio.your-company.co.uk"  # Default is same as MINIO_ENDPOINT
 MINIO_EXTERNAL_ENDPOINT_USE_HTTPS = True  # Default is same as MINIO_USE_HTTPS
@@ -93,7 +102,7 @@ class PrivateAttachment(models.Model):
 ```
 
 5. Initialize the buckets & set their public policy (OPTIONAL):<br>
-This `django-admin` command creates both the private and public buckets in case one of them does not exists,
+This `django-admin` command creates both the private and public buckets in case one of them does not exist,
 and sets the *public* bucket's privacy policy from `private`(default) to `public`.<br>
 ```bash
 python manage.py initialize_buckets
@@ -103,13 +112,20 @@ Code reference: [initialize_buckets.py](django_minio_backend/management/commands
 
 ### Static Files Support
 **django-minio-backend** allows serving static files from MinIO.
-To learn more about Django static files, see [Managing static files](https://docs.djangoproject.com/en/3.2/howto/static-files/), and [STATICFILES_STORAGE](https://docs.djangoproject.com/en/3.2/ref/settings/#staticfiles-storage).
+To learn more about Django static files, see [Managing static files](https://docs.djangoproject.com/en/5.1/howto/static-files/), [STATICFILES_STORAGE](https://docs.djangoproject.com/en/5.1/ref/settings/#static-files) and [STORAGES](https://docs.djangoproject.com/en/5.1/ref/settings/#std-setting-STORAGES).
 
 To enable static files support, update your `settings.py`:
 ```python
-STATICFILES_STORAGE = 'django_minio_backend.models.MinioBackendStatic'
+STORAGES = {  # -- ADDED IN Django 5.1
+    "default": {
+        "BACKEND": "django_minio_backend.models.MinioBackend",
+    },
+    "staticfiles": {  # -- ADD THESE LINES FOR STATIC FILES SUPPORT
+        "BACKEND": "django_minio_backend.models.MinioBackendStatic",
+    },
+}
 MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for STATIC_ROOT
-# Add the value of MINIO_STATIC_FILES_BUCKET to one of the pre-configured bucket lists. eg.:
+# Add the value of MINIO_STATIC_FILES_BUCKET to one of the pre-configured bucket lists. e.g.:
 # MINIO_PRIVATE_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
 # MINIO_PUBLIC_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
 ```
@@ -124,13 +140,17 @@ otherwise **django-minio-backend** will raise an exception. This setting determi
 
 ### Default File Storage Support
 **django-minio-backend** can be configured as a default file storage.
-To learn more, see [DEFAULT_FILE_STORAGE](https://docs.djangoproject.com/en/3.2/ref/settings/#default-file-storage).
+To learn more, see [STORAGES](https://docs.djangoproject.com/en/5.1/ref/settings/#std-setting-STORAGES).
 
 To configure **django-minio-backend** as the default file storage, update your `settings.py`:
 ```python
-DEFAULT_FILE_STORAGE = 'django_minio_backend.models.MinioBackend'
+STORAGES = {  # -- ADDED IN Django 5.1
+    "default": {
+        "BACKEND": "django_minio_backend.models.MinioBackend",
+    }
+}
 MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for MEDIA_ROOT
-# Add the value of MINIO_STATIC_FILES_BUCKET to one of the pre-configured bucket lists. eg.:
+# Add the value of MINIO_STATIC_FILES_BUCKET to one of the pre-configured bucket lists. e.g.:
 # MINIO_PRIVATE_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
 # MINIO_PUBLIC_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
 ```
@@ -205,8 +225,8 @@ To learn more about Docker networking, see [Networking overview](https://docs.do
 See [README.Docker.md](README.Docker.md) for a real-life Docker Compose demonstration.
 
 ## Compatibility
-  * Django 3.2 or later
-  * Python 3.8.0 or later
+  * Django 4.2 or later
+  * Python 3.10.0 or later
   * MinIO SDK 7.0.2 or later
 
 ## Contribution

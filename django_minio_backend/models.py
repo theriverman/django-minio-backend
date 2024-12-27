@@ -473,7 +473,7 @@ class MinioBackend(Storage):
 class MinioBackendStatic(MinioBackend):
     """
     MinIO-compatible Django custom storage system for Django static files.
-    The used bucket can be configured in settings.py through `MINIO_STATIC_FILES_BUCKET`
+    The used bucket can be configured in settings.py through `STORAGES.staticfiles.BACKEND`
     :arg *args: Should not be used for static files. It's here for compatibility only
     :arg **kwargs: Should not be used for static files. It's here for compatibility only
     """
