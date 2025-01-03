@@ -146,37 +146,42 @@ dummy_policy = {"Version": "2012-10-17",
                     }
                 ]}
 
-MINIO_ENDPOINT = os.getenv("GH_MINIO_ENDPOINT", "play.min.io")
-MINIO_EXTERNAL_ENDPOINT = os.getenv("GH_MINIO_EXTERNAL_ENDPOINT", "externalplay.min.io")
-MINIO_EXTERNAL_ENDPOINT_USE_HTTPS = bool(distutils.util.strtobool(os.getenv("GH_MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", "true")))
-MINIO_ACCESS_KEY = os.getenv("GH_MINIO_ACCESS_KEY", "Q3AM3UQ867SPQQA43P2F")
-MINIO_SECRET_KEY = os.getenv("GH_MINIO_SECRET_KEY", "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG")
-MINIO_USE_HTTPS = bool(distutils.util.strtobool(os.getenv("GH_MINIO_USE_HTTPS", "true")))
-MINIO_REGION = os.getenv("GH_MINIO_REGION", "us-east-1")
-MINIO_PRIVATE_BUCKETS = [
-    'django-backend-dev-private',
-    'my-media-files-bucket',
-]
-MINIO_PUBLIC_BUCKETS = [
-    'django-backend-dev-public',
-    't5p2g08k31',
-    '7xi7lx9rjh',
-    'my-static-files-bucket',
-]
-MINIO_URL_EXPIRY_HOURS = timedelta(days=1)  # Default is 7 days (longest) if not defined
-MINIO_CONSISTENCY_CHECK_ON_START = True
-MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = [
-    # ('django-backend-dev-private', dummy_policy)
-]
-MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for STATIC_ROOT
-MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for MEDIA_ROOT
-MINIO_BUCKET_CHECK_ON_SAVE = False  # Create bucket if missing, then save
-
 STORAGES = {  # -- ADDED IN Django 5.1
-    "default": {
-        "BACKEND": "django_minio_backend.models.MinioBackend",
-    },
     "staticfiles": {
         "BACKEND": "django_minio_backend.models.MinioBackendStatic",
+        "OPTIONS": {
+            "MINIO_ENDPOINT": os.getenv("GH_MINIO_ENDPOINT", "play.min.io"),
+            "MINIO_EXTERNAL_ENDPOINT": os.getenv("GH_MINIO_EXTERNAL_ENDPOINT", "play.min.io"),
+            "MINIO_EXTERNAL_ENDPOINT_USE_HTTPS": bool(distutils.util.strtobool(os.getenv("GH_MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", "true"))),
+            "MINIO_ACCESS_KEY": os.getenv("GH_MINIO_ACCESS_KEY", "Q3AM3UQ867SPQQA43P2F"),
+            "MINIO_SECRET_KEY": os.getenv("GH_MINIO_SECRET_KEY", "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"),
+            "MINIO_USE_HTTPS": bool(distutils.util.strtobool(os.getenv("GH_MINIO_USE_HTTPS", "true"))),
+            "MINIO_REGION": os.getenv("GH_MINIO_REGION", "us-east-1"),
+            "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # Default is 7 days (longest) if not defined
+            "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket",
+            "MINIO_PUBLIC_BUCKETS": ['my-static-files-bucket', ],
+        },
+    },
+    "kiscica": {
+        "BACKEND": "django_minio_backend.models.MinioBackend",
+        "OPTIONS": {
+            "MINIO_ENDPOINT": os.getenv("GH_MINIO_ENDPOINT", "play.min.io"),
+            "MINIO_EXTERNAL_ENDPOINT": os.getenv("GH_MINIO_EXTERNAL_ENDPOINT", "play.min.io"),
+            "MINIO_EXTERNAL_ENDPOINT_USE_HTTPS": bool(distutils.util.strtobool(os.getenv("GH_MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", "true"))),
+            "MINIO_ACCESS_KEY": os.getenv("GH_MINIO_ACCESS_KEY", "Q3AM3UQ867SPQQA43P2F"),
+            "MINIO_SECRET_KEY": os.getenv("GH_MINIO_SECRET_KEY", "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"),
+            "MINIO_USE_HTTPS": bool(distutils.util.strtobool(os.getenv("GH_MINIO_USE_HTTPS", "true"))),
+            "MINIO_REGION": os.getenv("GH_MINIO_REGION", "us-east-1"),
+            "MINIO_PRIVATE_BUCKETS": ['django-backend-dev-private', 'my-media-files-bucket', ],
+            "MINIO_PUBLIC_BUCKETS": ['django-backend-dev-public', 't5p2g08k31', '7xi7lx9rjh' ],
+            "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # Default is 7 days (longest) if not defined
+            "MINIO_CONSISTENCY_CHECK_ON_START": False,
+            "MINIO_POLICY_HOOKS": [  # List[Tuple[str, dict]]
+                # ('django-backend-dev-private', dummy_policy)
+            ],
+            "MINIO_MEDIA_FILES_BUCKET": "my-media-files-bucket",
+            "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket",
+            "MINIO_BUCKET_CHECK_ON_SAVE": False,
+        },
     },
 }

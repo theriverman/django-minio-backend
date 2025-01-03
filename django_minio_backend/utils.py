@@ -4,7 +4,7 @@ from typing import Union, List
 from django.conf import settings
 
 
-__all__ = ['MinioServerStatus', 'PrivatePublicMixedError', 'ConfigurationError', 'get_setting', ]
+__all__ = ['MinioServerStatus', 'PrivatePublicMixedError', 'ConfigurationError', 'get_setting', 'get_storages_setting']
 
 
 class MinioServerStatus:
@@ -73,3 +73,10 @@ class ConfigurationError(Exception):
 def get_setting(name, default=None):
     """Get setting from settings.py. Return a default value if not defined"""
     return getattr(settings, name, default)
+
+
+def get_storages_setting(name, storage="default", default=None):
+    """Get STORAGES setting from settings.py. Return a default value if not defined"""
+    storages = settings.STORAGES
+    options = storages[storage]["OPTIONS"]
+    return getattr(options, name, default)

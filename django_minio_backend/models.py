@@ -28,7 +28,7 @@ from django.core.files.storage import Storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.deconstruct import deconstructible
 
-from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting
+from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting, get_storages_setting
 
 
 __all__ = ['MinioBackend', 'MinioBackendStatic', 'get_iso_date', 'iso_date_prefix', ]
@@ -75,13 +75,21 @@ class MinioBackend(Storage):
     DEFAULT_MEDIA_FILES_BUCKET = 'auto-generated-bucket-media-files'
     DEFAULT_STATIC_FILES_BUCKET = 'auto-generated-bucket-static-files'
     DEFAULT_PRIVATE_BUCKETS = [DEFAULT_MEDIA_FILES_BUCKET, DEFAULT_STATIC_FILES_BUCKET]
-    MINIO_MEDIA_FILES_BUCKET = get_setting("MINIO_MEDIA_FILES_BUCKET", default=DEFAULT_MEDIA_FILES_BUCKET)
-    MINIO_STATIC_FILES_BUCKET = get_setting("MINIO_STATIC_FILES_BUCKET", default=DEFAULT_STATIC_FILES_BUCKET)
 
     def __init__(self,
                  bucket_name: str = '',
                  *args,
                  **kwargs):
+        __min_options_len = 6  # guard to verify how the class was instantiated
+        if len(kwargs) < __min_options_len:
+            # TODO: REMOVE THIS MONKEY-PATCH WITH A MORE ROBUST SOLUTION
+            print("WARNING - INVALID INSTANTIATION. kwargs ->", kwargs)
+            storages = get_setting('STORAGES')
+            options = storages["default"]["OPTIONS"]
+            kwargs.update(options)
+
+        self.MINIO_MEDIA_FILES_BUCKET = kwargs.get("MINIO_MEDIA_FILES_BUCKET", self.DEFAULT_MEDIA_FILES_BUCKET)
+        self.MINIO_STATIC_FILES_BUCKET = kwargs.get("MINIO_STATIC_FILES_BUCKET", self.DEFAULT_STATIC_FILES_BUCKET)
 
         # If bucket_name is not provided, MinioBackend acts as a DEFAULT_FILE_STORAGE
         # The automatically selected bucket is MINIO_MEDIA_FILES_BUCKET from settings.py
@@ -100,21 +108,21 @@ class MinioBackend(Storage):
 
         self.__CLIENT: Union[minio.Minio, None] = None  # This client is used for internal communication only. Communication this way should not leave the host network's perimeter
         self.__CLIENT_EXT: Union[minio.Minio, None] = None  # This client is used for external communication. This client is necessary for creating region-aware pre-signed URLs
-        self.__MINIO_ENDPOINT: str = get_setting("MINIO_ENDPOINT", "")
-        self.__MINIO_EXTERNAL_ENDPOINT: str = get_setting("MINIO_EXTERNAL_ENDPOINT", self.__MINIO_ENDPOINT)
-        self.__MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
-        self.__MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
-        self.__MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS")
-        self.__MINIO_REGION: str = get_setting("MINIO_REGION", "us-east-1")  # MINIO defaults to "us-east-1" when region is set to None
-        self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = get_setting("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
-        self.__MINIO_BUCKET_CHECK_ON_SAVE: bool = get_setting("MINIO_BUCKET_CHECK_ON_SAVE", False)
+        self.__MINIO_ENDPOINT: str = kwargs.get("MINIO_ENDPOINT", "")
+        self.__MINIO_EXTERNAL_ENDPOINT: str = kwargs.get("MINIO_EXTERNAL_ENDPOINT", self.__MINIO_ENDPOINT)
+        self.__MINIO_ACCESS_KEY: str = kwargs.get("MINIO_ACCESS_KEY")
+        self.__MINIO_SECRET_KEY: str = kwargs.get("MINIO_SECRET_KEY")
+        self.__MINIO_USE_HTTPS: bool = kwargs.get("MINIO_USE_HTTPS")
+        self.__MINIO_REGION: str = kwargs.get("MINIO_REGION", "us-east-1")  # MINIO defaults to "us-east-1" when region is set to None
+        self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = kwargs.get("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
+        self.__MINIO_BUCKET_CHECK_ON_SAVE: bool = kwargs.get("MINIO_BUCKET_CHECK_ON_SAVE", False)
 
         self.__BASE_URL = ("https://" if self.__MINIO_USE_HTTPS else "http://") + self.__MINIO_ENDPOINT
         self.__BASE_URL_EXTERNAL = ("https://" if self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS else "http://") + self.__MINIO_EXTERNAL_ENDPOINT
         self.__SAME_ENDPOINTS = self.__MINIO_ENDPOINT == self.__MINIO_EXTERNAL_ENDPOINT
 
-        self.PRIVATE_BUCKETS: List[str] = get_setting("MINIO_PRIVATE_BUCKETS", [])
-        self.PUBLIC_BUCKETS: List[str] = get_setting("MINIO_PUBLIC_BUCKETS", [])
+        self.PRIVATE_BUCKETS: List[str] = kwargs.get("MINIO_PRIVATE_BUCKETS", [])
+        self.PUBLIC_BUCKETS: List[str] = kwargs.get("MINIO_PUBLIC_BUCKETS", [])
 
         # Configure storage type
         self.__STORAGE_TYPE = 'custom'
@@ -132,7 +140,7 @@ class MinioBackend(Storage):
 
         # https://docs.min.io/docs/python-client-api-reference.html
         http_client_from_kwargs = self._META_KWARGS.get("http_client", None)
-        http_client_from_settings = get_setting("MINIO_HTTP_CLIENT")
+        http_client_from_settings = kwargs.get("MINIO_HTTP_CLIENT")
         self.HTTP_CLIENT: urllib3.poolmanager.PoolManager = http_client_from_kwargs or http_client_from_settings
 
         bucket_name_intersection: List[str] = list(set(self.PRIVATE_BUCKETS) & set(self.PUBLIC_BUCKETS))
@@ -140,6 +148,10 @@ class MinioBackend(Storage):
             raise PrivatePublicMixedError(
                 f'One or more buckets have been declared both private and public: {bucket_name_intersection}'
             )
+
+        # additional properties
+        self.__MINIO_URL_EXPIRY_HOURS = kwargs.get("MINIO_URL_EXPIRY_HOURS", datetime.timedelta(days=7))
+
 
     """
         django.core.files.storage.Storage
@@ -272,7 +284,7 @@ class MinioBackend(Storage):
             u: str = client.presigned_get_object(
                 bucket_name=self.bucket,
                 object_name=name,
-                expires=get_setting("MINIO_URL_EXPIRY_HOURS", datetime.timedelta(days=7))  # Default is 7 days
+                expires=self.__MINIO_URL_EXPIRY_HOURS,  # Default is 7 days
             )
             return u
         except urllib3.exceptions.MaxRetryError:
@@ -453,7 +465,7 @@ class MinioBackend(Storage):
           * A mandatory parameter (MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY or MINIO_USE_HTTPS) hasn't been declared and configured properly
         """
         # minimum 1 bucket has to be declared
-        if not (get_setting("MINIO_PRIVATE_BUCKETS") or get_setting("MINIO_PUBLIC_BUCKETS")):
+        if not (self.PRIVATE_BUCKETS or self.PUBLIC_BUCKETS):
             raise ConfigurationError(
                 'Either '
                 'MINIO_PRIVATE_BUCKETS'
@@ -463,7 +475,7 @@ class MinioBackend(Storage):
             )
         # mandatory parameters must be configured
         mandatory_parameters = (self.__MINIO_ENDPOINT, self.__MINIO_ACCESS_KEY, self.__MINIO_SECRET_KEY)
-        if any([bool(x) is False for x in mandatory_parameters]) or (get_setting("MINIO_USE_HTTPS") is None):
+        if any([bool(x) is False for x in mandatory_parameters]) or (self.__MINIO_USE_HTTPS is None):
             raise ConfigurationError(
                 "A mandatory parameter (MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY or MINIO_USE_HTTPS) hasn't been configured properly"
             )
@@ -478,7 +490,9 @@ class MinioBackendStatic(MinioBackend):
     :arg **kwargs: Should not be used for static files. It's here for compatibility only
     """
     def __init__(self, *args, **kwargs):
-        super().__init__(self.MINIO_STATIC_FILES_BUCKET, *args, **kwargs)
+        # TODO: make sure it's actually a static files storage role
+        sfb = kwargs.get("MINIO_STATIC_FILES_BUCKET", self.DEFAULT_STATIC_FILES_BUCKET)
+        super().__init__(sfb, *args, **kwargs)
         self.check_bucket_existence()  # make sure the `MINIO_STATIC_FILES_BUCKET` exists
         self.set_bucket_to_public()  # the static files bucket must be publicly available
 
