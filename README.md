@@ -33,15 +33,7 @@ The following set of features are available in **django-minio-backend**:
     pip install django-minio-backend
     ```
 
-2. Add `django_minio_backend` to `INSTALLED_APPS`:
-    ```python
-    INSTALLED_APPS = [
-        # '...'
-        'django_minio_backend',  # https://github.com/theriverman/django-minio-backend
-    ]
-    ```
-
-    If you would like to enable on-start consistency check, install via `DjangoMinioBackendConfig`:
+2. Add `django_minio_backend.apps.DjangoMinioBackendConfig` to `INSTALLED_APPS`:
     ```python
     INSTALLED_APPS = [
         # '...'
@@ -49,48 +41,49 @@ The following set of features are available in **django-minio-backend**:
     ]
     ``` 
 
-    Then add the following parameter to your settings file:
-    ```python
-    MINIO_CONSISTENCY_CHECK_ON_START = True
-    ```
-
-    **Note:** The on-start consistency check equals to manually calling `python manage.py initialize_buckets`. <br>
-    It is recommended to turn *off* this feature during development by setting `MINIO_CONSISTENCY_CHECK_ON_START` to `False`, 
-    because this operation can noticeably slow down Django's boot time when many buckets are configured.
-
 3. Add the following parameters to your `settings.py`:
     ```python
     from datetime import timedelta
-    from typing import List, Tuple
     
     STORAGES = {  # -- ADDED IN Django 5.1
+        "staticfiles": {
+            "BACKEND": "django_minio_backend.models.MinioBackendStatic",
+            "OPTIONS": {
+                "MINIO_ENDPOINT": os.getenv("GH_MINIO_ENDPOINT", "play.min.io"),
+                "MINIO_EXTERNAL_ENDPOINT": os.getenv("GH_MINIO_EXTERNAL_ENDPOINT", "play.min.io"),
+                "MINIO_EXTERNAL_ENDPOINT_USE_HTTPS": bool(distutils.util.strtobool(os.getenv("GH_MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", "true"))),
+                "MINIO_ACCESS_KEY": os.getenv("GH_MINIO_ACCESS_KEY", "Q3AM3UQ867SPQQA43P2F"),
+                "MINIO_SECRET_KEY": os.getenv("GH_MINIO_SECRET_KEY", "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"),
+                "MINIO_USE_HTTPS": bool(distutils.util.strtobool(os.getenv("GH_MINIO_USE_HTTPS", "true"))),
+                "MINIO_REGION": os.getenv("GH_MINIO_REGION", "us-east-1"),
+                "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # Default is 7 days (longest) if not defined
+                "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket",
+                "MINIO_PUBLIC_BUCKETS": ['my-static-files-bucket', ],
+            },
+        },
         "default": {
             "BACKEND": "django_minio_backend.models.MinioBackend",
+            "OPTIONS": {
+                "MINIO_ENDPOINT": os.getenv("GH_MINIO_ENDPOINT", "play.min.io"),
+                "MINIO_EXTERNAL_ENDPOINT": os.getenv("GH_MINIO_EXTERNAL_ENDPOINT", "play.min.io"),
+                "MINIO_EXTERNAL_ENDPOINT_USE_HTTPS": bool(distutils.util.strtobool(os.getenv("GH_MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", "true"))),
+                "MINIO_ACCESS_KEY": os.getenv("GH_MINIO_ACCESS_KEY", "Q3AM3UQ867SPQQA43P2F"),
+                "MINIO_SECRET_KEY": os.getenv("GH_MINIO_SECRET_KEY", "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"),
+                "MINIO_USE_HTTPS": bool(distutils.util.strtobool(os.getenv("GH_MINIO_USE_HTTPS", "true"))),
+                "MINIO_REGION": os.getenv("GH_MINIO_REGION", "us-east-1"),
+                "MINIO_PRIVATE_BUCKETS": ['django-backend-dev-private', 'my-media-files-bucket', ],
+                "MINIO_PUBLIC_BUCKETS": ['django-backend-dev-public', 't5p2g08k31', '7xi7lx9rjh' ],
+                "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # Default is 7 days (longest) if not defined
+                "MINIO_CONSISTENCY_CHECK_ON_START": False,
+                "MINIO_POLICY_HOOKS": [  # List[Tuple[str, dict]]
+                    # ('django-backend-dev-private', dummy_policy)
+                ],
+                "MINIO_DEFAULT_BUCKET": "my-media-files-bucket",
+                "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket",
+                "MINIO_BUCKET_CHECK_ON_SAVE": False,
+            },
         },
-        # "staticfiles": {  # -- OPTIONAL
-        #     "BACKEND": "django_minio_backend.models.MinioBackendStatic",
-        # },
     }
-    
-    MINIO_ENDPOINT = 'minio.your-company.co.uk'
-    MINIO_EXTERNAL_ENDPOINT = "external-minio.your-company.co.uk"  # Default is same as MINIO_ENDPOINT
-    MINIO_EXTERNAL_ENDPOINT_USE_HTTPS = True  # Default is same as MINIO_USE_HTTPS
-    MINIO_REGION = 'us-east-1'  # Default is set to None
-    MINIO_ACCESS_KEY = 'yourMinioAccessKey'
-    MINIO_SECRET_KEY = 'yourVeryS3cr3tP4ssw0rd'
-    MINIO_USE_HTTPS = True
-    MINIO_URL_EXPIRY_HOURS = timedelta(days=1)  # Default is 7 days (longest) if not defined
-    MINIO_CONSISTENCY_CHECK_ON_START = True
-    MINIO_PRIVATE_BUCKETS = [
-        'django-backend-dev-private',
-    ]
-    MINIO_PUBLIC_BUCKETS = [
-        'django-backend-dev-public',
-    ]
-    MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = []
-    # MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for MEDIA_ROOT
-    # MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for STATIC_ROOT
-    MINIO_BUCKET_CHECK_ON_SAVE = True  # Default: True // Creates bucket if missing, then save
     
     # Custom HTTP Client (OPTIONAL)
     import os
@@ -98,7 +91,8 @@ The following set of features are available in **django-minio-backend**:
     import urllib3
     timeout = timedelta(minutes=5).seconds
     ca_certs = os.environ.get('SSL_CERT_FILE') or certifi.where()
-    MINIO_HTTP_CLIENT: urllib3.poolmanager.PoolManager = urllib3.PoolManager(
+    STORAGES["default"]["OPTIONS"]["MINIO_HTTP_CLIENT"]: urllib3.poolmanager.PoolManager
+    STORAGES["default"]["OPTIONS"]["MINIO_HTTP_CLIENT"] = urllib3.PoolManager(
         timeout=urllib3.util.Timeout(connect=timeout, read=timeout),
         maxsize=10,
         cert_reqs='CERT_REQUIRED',
@@ -118,7 +112,7 @@ The following set of features are available in **django-minio-backend**:
     
     class PrivateAttachment(models.Model):   
         file = models.FileField(verbose_name="Object Upload",
-                                storage=MinioBackend(bucket_name='django-backend-dev-private'),
+                                storage=MinioBackend(bucket_name='django-backend-dev-private', storage_name="default"),
                                 upload_to=iso_date_prefix)
     ```
 
@@ -170,7 +164,7 @@ STORAGES = {  # -- ADDED IN Django 5.1
         "BACKEND": "django_minio_backend.models.MinioBackend",
     }
 }
-MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for MEDIA_ROOT
+MINIO_DEFAULT_BUCKET = 'my-media-files-bucket'  # replacement for MEDIA_ROOT
 # Add the value of MINIO_STATIC_FILES_BUCKET to one of the pre-configured bucket lists. e.g.:
 # MINIO_PRIVATE_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
 # MINIO_PUBLIC_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
@@ -179,10 +173,10 @@ MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for MEDIA_ROOT
 The value of `MEDIA_URL` is ignored, but it must be defined otherwise Django will throw an error.
 
 **IMPORTANT**<br>
-The value set in `MINIO_MEDIA_FILES_BUCKET` must be added either to `MINIO_PRIVATE_BUCKETS` or `MINIO_PUBLIC_BUCKETS`,
+The value set in `MINIO_DEFAULT_BUCKET` must be added either to `MINIO_PRIVATE_BUCKETS` or `MINIO_PUBLIC_BUCKETS`,
 otherwise **django-minio-backend** will raise an exception. This setting determines the privacy of generated file URLs which can be unsigned public or signed private.
 
-**Note:** If `MINIO_MEDIA_FILES_BUCKET` is not set, the default value (`auto-generated-bucket-media-files`) will be used. Policy setting for default buckets is **private**.
+**Note:** If `MINIO_DEFAULT_BUCKET` is not set, the default value (`auto-generated-bucket-media-files`) will be used. Policy setting for default buckets is **private**.
 
 ### Health Check
 To check the connection link between Django and MinIO, use the provided `MinioBackend.is_minio_available()` method.<br>
@@ -214,11 +208,19 @@ When enabled, the `initialize_buckets` management command gets called automatica
 This command connects to the configured MinIO server and checks if all buckets defined in `settings.py`. <br>
 In case a bucket is missing or its configuration differs, it gets created and corrected.
 
+**Note:** The on-start consistency check equals to manually calling `python manage.py initialize_buckets`. <br>
+It is recommended to turn *off* this feature during development by setting `MINIO_CONSISTENCY_CHECK_ON_START` to `False`, 
+because this operation can noticeably slow down Django's boot time when many buckets are configured.
+
 ### Reference Implementation
 For a reference implementation, see [Examples](examples).
 
 ## Behaviour
 The following list summarises the key characteristics of **django-minio-backend**:
+  * STORAGES introduced in Django 5.1 enables configuring multiple storage backends with great customisation.
+    * MEDIA and STATIC files must be configured separate and the latter must be named `staticfiles` explicitly.
+    * STATIC files are stored in a single bucket managed via `MINIO_STATIC_FILES_BUCKET`.
+    * STATIC files are **public** by default and must remain public to avoid certain Django admin errors.
   * Bucket existence is **not** checked on a save by default.
     To enable this guard, set `MINIO_BUCKET_CHECK_ON_SAVE = True` in your `settings.py`.
   * Bucket existences are **not** checked on Django start by default.
@@ -228,7 +230,7 @@ The following list summarises the key characteristics of **django-minio-backend*
     To allow replacing existing files, pass the `replace_existing=True` kwarg to `MinioBackend`.
     For example:
     ```python
-    image = models.ImageField(storage=MinioBackend(bucket_name='images-public', replace_existing=True))
+    image = models.ImageField(storage=MinioBackend(bucket_name='images-public', storage_name="default",  replace_existing=True))
     ```
   * Depending on your configuration, **django-minio-backend** may communicate over two kind of interfaces: internal and external.
     If your `settings.py` defines a different value for `MINIO_ENDPOINT` and `MINIO_EXTERNAL_ENDPOINT`, then the former will be used for internal communication

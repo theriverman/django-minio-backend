@@ -24,7 +24,7 @@ import minio.helpers
 # noinspection PyPackageRequirements MinIO_requirement
 import urllib3
 from django.core.files import File
-from django.core.files.storage import Storage
+from django.core.files.storage import Storage, storages
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.deconstruct import deconstructible
 
@@ -72,33 +72,21 @@ class MinioBackend(Storage):
         Through self._META_KWARGS, the "metadata", "sse" and "progress" fields can be set
         for the underlying put_object() MinIO SDK method
     """
-    DEFAULT_MEDIA_FILES_BUCKET = 'auto-generated-bucket-media-files'
-    DEFAULT_STATIC_FILES_BUCKET = 'auto-generated-bucket-static-files'
-    DEFAULT_PRIVATE_BUCKETS = [DEFAULT_MEDIA_FILES_BUCKET, DEFAULT_STATIC_FILES_BUCKET]
+    DEFAULT_MEDIA_FILES_BUCKET = 'auto-generated-bucket-media-files'  # PRIVATE BY DEFAULT
 
     def __init__(self,
                  bucket_name: str = '',
+                 storage_name: str = 'default',  # TODO: consider renaming `storage_name` b/c it's misleading
                  *args,
                  **kwargs):
-        __min_options_len = 6  # guard to verify how the class was instantiated
-        if len(kwargs) < __min_options_len:
-            # TODO: REMOVE THIS MONKEY-PATCH WITH A MORE ROBUST SOLUTION
-            print("WARNING - INVALID INSTANTIATION. kwargs ->", kwargs)
-            storages = get_setting('STORAGES')
-            options = storages["default"]["OPTIONS"]
-            kwargs.update(options)
+        # received kwargs are preferred. missing keys are filled from storages.backends
+        kwargs = {**kwargs, **{k: v for k, v in storages.backends[storage_name]["OPTIONS"].items() if k not in kwargs}}
 
-        self.MINIO_MEDIA_FILES_BUCKET = kwargs.get("MINIO_MEDIA_FILES_BUCKET", self.DEFAULT_MEDIA_FILES_BUCKET)
-        self.MINIO_STATIC_FILES_BUCKET = kwargs.get("MINIO_STATIC_FILES_BUCKET", self.DEFAULT_STATIC_FILES_BUCKET)
-
-        # If bucket_name is not provided, MinioBackend acts as a DEFAULT_FILE_STORAGE
-        # The automatically selected bucket is MINIO_MEDIA_FILES_BUCKET from settings.py
+        # If bucket_name is not provided, MinioBackend falls back to using DEFAULT_MEDIA_FILES_BUCKET
         # See https://docs.djangoproject.com/en/3.2/ref/settings/#default-file-storage
         if not bucket_name or bucket_name == '':
-            self.__CONFIGURED_AS_DEFAULT_STORAGE = True
-            self._BUCKET_NAME: str = self.MINIO_MEDIA_FILES_BUCKET
+            self._BUCKET_NAME: str = kwargs.get("MINIO_DEFAULT_BUCKET", self.DEFAULT_MEDIA_FILES_BUCKET)
         else:
-            self.__CONFIGURED_AS_DEFAULT_STORAGE = False
             self._BUCKET_NAME: str = bucket_name
 
         self._META_ARGS = args
@@ -116,43 +104,31 @@ class MinioBackend(Storage):
         self.__MINIO_REGION: str = kwargs.get("MINIO_REGION", "us-east-1")  # MINIO defaults to "us-east-1" when region is set to None
         self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = kwargs.get("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
         self.__MINIO_BUCKET_CHECK_ON_SAVE: bool = kwargs.get("MINIO_BUCKET_CHECK_ON_SAVE", False)
-
+        self.__MINIO_URL_EXPIRY_HOURS = kwargs.get("MINIO_URL_EXPIRY_HOURS", datetime.timedelta(days=7))
         self.__BASE_URL = ("https://" if self.__MINIO_USE_HTTPS else "http://") + self.__MINIO_ENDPOINT
         self.__BASE_URL_EXTERNAL = ("https://" if self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS else "http://") + self.__MINIO_EXTERNAL_ENDPOINT
         self.__SAME_ENDPOINTS = self.__MINIO_ENDPOINT == self.__MINIO_EXTERNAL_ENDPOINT
 
         self.PRIVATE_BUCKETS: List[str] = kwargs.get("MINIO_PRIVATE_BUCKETS", [])
         self.PUBLIC_BUCKETS: List[str] = kwargs.get("MINIO_PUBLIC_BUCKETS", [])
+        if self.bucket == self.DEFAULT_MEDIA_FILES_BUCKET:
+            self.PRIVATE_BUCKETS.append(self.DEFAULT_MEDIA_FILES_BUCKET)
 
-        # Configure storage type
-        self.__STORAGE_TYPE = 'custom'
-        if self.bucket == self.MINIO_MEDIA_FILES_BUCKET:
-            self.__STORAGE_TYPE = 'media'
-        if self.bucket == self.MINIO_STATIC_FILES_BUCKET:
-            self.__STORAGE_TYPE = 'static'
-
-        # Enforce good bucket security (private vs public)
-        if (self.bucket in self.DEFAULT_PRIVATE_BUCKETS) and (self.bucket not in [*self.PRIVATE_BUCKETS, *self.PUBLIC_BUCKETS]):
-            self.PRIVATE_BUCKETS.extend(self.DEFAULT_PRIVATE_BUCKETS)  # policy for default buckets is PRIVATE
-        # Require custom buckets to be declared explicitly
         if self.bucket not in [*self.PRIVATE_BUCKETS, *self.PUBLIC_BUCKETS]:
-            raise ConfigurationError(f'The configured bucket ({self.bucket}) must be declared either in MINIO_PRIVATE_BUCKETS or MINIO_PUBLIC_BUCKETS')
+            logger.warning(f'Bucket ({self.bucket}) is not declared either in MINIO_PRIVATE_BUCKETS or '
+                           f'MINIO_PUBLIC_BUCKETS. Falling back to defaults treating bucket as PRIVATE.')
+            self.PRIVATE_BUCKETS.append(self.bucket)
 
         # https://docs.min.io/docs/python-client-api-reference.html
         http_client_from_kwargs = self._META_KWARGS.get("http_client", None)
         http_client_from_settings = kwargs.get("MINIO_HTTP_CLIENT")
         self.HTTP_CLIENT: urllib3.poolmanager.PoolManager = http_client_from_kwargs or http_client_from_settings
 
-        bucket_name_intersection: List[str] = list(set(self.PRIVATE_BUCKETS) & set(self.PUBLIC_BUCKETS))
-        if bucket_name_intersection:
+        if bucket_name_intersection := list(set(self.PRIVATE_BUCKETS) & set(self.PUBLIC_BUCKETS)):
             raise PrivatePublicMixedError(
                 f'One or more buckets have been declared both private and public: {bucket_name_intersection}'
             )
-
-        # additional properties
-        self.__MINIO_URL_EXPIRY_HOURS = kwargs.get("MINIO_URL_EXPIRY_HOURS", datetime.timedelta(days=7))
-
-
+        self.validate_settings()
     """
         django.core.files.storage.Storage
     """
@@ -489,12 +465,12 @@ class MinioBackendStatic(MinioBackend):
     :arg *args: Should not be used for static files. It's here for compatibility only
     :arg **kwargs: Should not be used for static files. It's here for compatibility only
     """
+    DEFAULT_STATIC_FILES_BUCKET = 'auto-generated-bucket-static-files'
+
     def __init__(self, *args, **kwargs):
-        # TODO: make sure it's actually a static files storage role
-        sfb = kwargs.get("MINIO_STATIC_FILES_BUCKET", self.DEFAULT_STATIC_FILES_BUCKET)
-        super().__init__(sfb, *args, **kwargs)
-        self.check_bucket_existence()  # make sure the `MINIO_STATIC_FILES_BUCKET` exists
-        self.set_bucket_to_public()  # the static files bucket must be publicly available
+        static_files_bucket = kwargs.get("MINIO_STATIC_FILES_BUCKET", self.DEFAULT_STATIC_FILES_BUCKET)
+        kwargs["MINIO_PUBLIC_BUCKETS"] = [static_files_bucket, ]  # hardcoded. static files must be public
+        super().__init__(bucket_name=static_files_bucket, storage_name="staticfiles", *args, **kwargs)
 
     def path(self, name):
         """The MinIO storage system doesn't support absolute paths"""

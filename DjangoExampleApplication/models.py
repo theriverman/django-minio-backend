@@ -4,7 +4,8 @@ from django.db import models
 from django.db.models.fields.files import FieldFile
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
-from django_minio_backend import MinioBackend, iso_date_prefix
+from django_minio_backend import iso_date_prefix
+from DjangoExampleApplication.storages import get_public_storage, get_private_storage
 
 
 def get_iso_date() -> str:
@@ -19,7 +20,9 @@ class Image(models.Model):
     """
     objects = models.Manager()
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    image = models.ImageField(upload_to=iso_date_prefix, storage=MinioBackend(bucket_name='django-backend-dev-public'))
+    image = models.ImageField(upload_to=iso_date_prefix,
+                              storage=get_public_storage,
+                              )
 
     def delete(self, *args, **kwargs):
         """
@@ -52,7 +55,7 @@ class PublicAttachment(models.Model):
     def set_file_path_name(self, file_name_ext: str) -> str:
         """
         Defines the full absolute path to the file in the bucket. The original content's type is used as parent folder.
-        :param file_name_ext: (str) File name + extension. ie.: cat.png OR images/animals/2019/cat.png
+        :param file_name_ext: (str) File name + extension. i.e.: cat.png OR images/animals/2019/cat.png
         :return: (str) Absolute path to file in Minio Bucket
         """
         return f"{get_iso_date()}/{self.content_type.name}/{file_name_ext}"
@@ -85,9 +88,7 @@ class PublicAttachment(models.Model):
     content_object = GenericForeignKey("content_type", "object_id")
 
     file: FieldFile = models.FileField(verbose_name="Object Upload",
-                                       storage=MinioBackend(  # Configure MinioBackend as storage backend here
-                                           bucket_name='django-backend-dev-public',
-                                       ),
+                                       storage=get_public_storage,
                                        upload_to=iso_date_prefix)
 
 
@@ -95,7 +96,7 @@ class PrivateAttachment(models.Model):
     def set_file_path_name(self, file_name_ext: str) -> str:
         """
         Defines the full absolute path to the file in the bucket. The original content's type is used as parent folder.
-        :param file_name_ext: (str) File name + extension. ie.: cat.png OR images/animals/2019/cat.png
+        :param file_name_ext: (str) File name + extension. i.e.: cat.png OR images/animals/2019/cat.png
         :return: (str) Absolute path to file in Minio Bucket
         """
         return f"{get_iso_date()}/{self.content_type.name}/{file_name_ext}"
@@ -128,7 +129,5 @@ class PrivateAttachment(models.Model):
     content_object = GenericForeignKey("content_type", "object_id")
 
     file: FieldFile = models.FileField(verbose_name="Object Upload",
-                                       storage=MinioBackend(  # Configure MinioBackend as storage backend here
-                                           bucket_name='django-backend-dev-private',
-                                       ),
+                                       storage=get_private_storage,
                                        upload_to=set_file_path_name)

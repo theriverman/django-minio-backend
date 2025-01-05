@@ -1,9 +1,12 @@
+import logging
 from django.apps import AppConfig
 from .utils import get_setting, ConfigurationError
 from .models import MinioBackend, MinioBackendStatic
 
 
 __all__ = ['DjangoMinioBackendConfig', ]
+
+logger = logging.getLogger(__name__)
 
 
 class DjangoMinioBackendConfig(AppConfig):
@@ -14,11 +17,12 @@ class DjangoMinioBackendConfig(AppConfig):
 
         if not get_setting('STORAGES'):
             raise ConfigurationError("STORAGES not configured in settings. Cannot use Django minio backend.")
-
         # Verify STATIC storage backend
         staticfiles = storages.backends.get("staticfiles")
         if staticfiles["BACKEND"] == f"{MinioBackend.__module__}.{MinioBackendStatic.__name__}":
             # Validate configuration combinations for EXTERNAL ENDPOINT
+            if "OPTIONS" not in staticfiles:
+                raise ConfigurationError("OPTIONS not configured in STORAGES. Cannot use Django minio backend.")
             options = staticfiles["OPTIONS"]
             external_address = bool(options.get('MINIO_EXTERNAL_ENDPOINT'))
             external_use_https = options.get('MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
@@ -26,7 +30,10 @@ class DjangoMinioBackendConfig(AppConfig):
                 raise ConfigurationError(
                     'MINIO_EXTERNAL_ENDPOINT must be configured together with MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
             mbs: MinioBackendStatic = storages.create_storage(staticfiles)
-            mbs.check_bucket_existence()
+            mbs.validate_settings()
+            if staticfiles["OPTIONS"].get("MINIO_CONSISTENCY_CHECK_ON_START", False):
+                logger.info("Executing consistency check for static files bucket...")
+                mbs.check_bucket_existence()
 
         # Verify MEDIA storage backend(s)
         app_path_backend_media = f"{MinioBackend.__module__}.{MinioBackend.__name__}"
@@ -46,9 +53,8 @@ class DjangoMinioBackendConfig(AppConfig):
             mb: MinioBackend = storages.create_storage(storage_config)
             mb.validate_settings()
             # Execute on-start consistency check (if enabled)
-            consistency_check_on_start = storage_config["OPTIONS"].get("MINIO_CONSISTENCY_CHECK_ON_START", False)
-            if consistency_check_on_start:
+            if storage_config["OPTIONS"].get("MINIO_CONSISTENCY_CHECK_ON_START", False):
                 from django.core.management import call_command
-                print("Executing consistency checks...")
+                logger.info("Executing consistency checks...")
                 call_command('initialize_buckets', silenced=True)
         return True
