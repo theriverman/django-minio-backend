@@ -128,6 +128,4 @@ class PrivateAttachment(models.Model):
     object_id = models.PositiveIntegerField(null=True, blank=True, verbose_name="Related Object's ID")
     content_object = GenericForeignKey("content_type", "object_id")
 
-    file: FieldFile = models.FileField(verbose_name="Object Upload",
-                                       storage=get_private_storage,
-                                       upload_to=set_file_path_name)
+    file: FieldFile = models.FileField(verbose_name="Object Upload", storage=get_private_storage, upload_to=set_file_path_name)
