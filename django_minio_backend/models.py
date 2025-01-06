@@ -76,7 +76,7 @@ class MinioBackend(Storage):
 
     def __init__(self,
                  bucket_name: str = '',
-                 storage_name: str = 'default',  # TODO: consider renaming `storage_name` b/c it's misleading
+                 storage_name: str = 'default',
                  *args,
                  **kwargs):
         # received kwargs are preferred. missing keys are filled from storages.backends
