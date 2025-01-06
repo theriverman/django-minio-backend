@@ -256,7 +256,7 @@ The following list summarises the key characteristics of **django-minio-backend*
     To allow replacing existing files, pass the `replace_existing=True` kwarg to `MinioBackend`.
     For example:
     ```python
-    image = models.ImageField(storage=MinioBackend(bucket_name='images-public', storage_name="default",  replace_existing=True))
+    image = models.ImageField(storage=storages.get_private_images_storage())
     ```
   * Depending on your configuration, **django-minio-backend** may communicate over two kind of interfaces: internal and external.
     If your `settings.py` defines a different value for `MINIO_ENDPOINT` and `MINIO_EXTERNAL_ENDPOINT`, then the former will be used for internal communication

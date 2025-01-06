@@ -156,11 +156,11 @@ STORAGES = {  # -- ADDED IN Django 5.1
             "MINIO_ENDPOINT": os.getenv("GH_MINIO_ENDPOINT", "localhost:9000"),  # EXTERNAL ADDRESS ONLY FOR STATIC
             "MINIO_ACCESS_KEY": os.getenv("GH_MINIO_ACCESS_KEY", "minioadmin"),
             "MINIO_SECRET_KEY": os.getenv("GH_MINIO_SECRET_KEY", "minioadmin"),
-            "MINIO_USE_HTTPS": False,
-            "MINIO_REGION": "us-east-1",
+            "MINIO_USE_HTTPS": bool(distutils.util.strtobool(os.getenv("GH_MINIO_USE_HTTPS", "false"))),
+            "MINIO_REGION": os.getenv("GH_MINIO_REGION", "us-east-1"),
             "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # Default is 7 days (longest) if not defined
             "MINIO_CONSISTENCY_CHECK_ON_START": True,
-            "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket-2025-01-05f",
+            "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket",
         },
     },
     "default": {
