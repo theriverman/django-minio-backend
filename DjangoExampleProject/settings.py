@@ -157,10 +157,10 @@ STORAGES = {  # -- ADDED IN Django 5.1
             "MINIO_ACCESS_KEY": os.getenv("GH_MINIO_ACCESS_KEY", "Q3AM3UQ867SPQQA43P2F"),
             "MINIO_SECRET_KEY": os.getenv("GH_MINIO_SECRET_KEY", "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"),
             "MINIO_USE_HTTPS": bool(distutils.util.strtobool(os.getenv("GH_MINIO_USE_HTTPS", "true"))),
-            "MINIO_REGION": os.getenv("GH_MINIO_REGION", "us-east-1"),
-            "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # Default is 7 days (longest) if not defined
-            "MINIO_CONSISTENCY_CHECK_ON_START": True,
-            "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket",
+            "MINIO_REGION": os.getenv("GH_MINIO_REGION", "us-east-1"),  # OPTIONAL
+            "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # OPTIONAL. Default is 7 days (longest) if not defined
+            "MINIO_CONSISTENCY_CHECK_ON_START": True,  # OPTIONAL.
+            "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket",  # OPTIONAL. Default = auto-generated-bucket-static-files
         },
     },
     "default": {
@@ -173,13 +173,13 @@ STORAGES = {  # -- ADDED IN Django 5.1
             "MINIO_ACCESS_KEY": os.getenv("GH_MINIO_ACCESS_KEY", "Q3AM3UQ867SPQQA43P2F"),
             "MINIO_SECRET_KEY": os.getenv("GH_MINIO_SECRET_KEY", "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"),
             "MINIO_USE_HTTPS": bool(distutils.util.strtobool(os.getenv("GH_MINIO_USE_HTTPS", "true"))),
-            "MINIO_REGION": os.getenv("GH_MINIO_REGION", "us-east-1"),
-            "MINIO_DEFAULT_BUCKET": "django-minio-backend-default-dev-bucket",  # PRIVATE by default if not added below
-            "MINIO_PRIVATE_BUCKETS": ['django-backend-dev-private', 'my-media-files-bucket', ],
-            "MINIO_PUBLIC_BUCKETS": ['django-backend-dev-public', 't5p2g08k31', '7xi7lx9rjh'],
+            "MINIO_REGION": os.getenv("GH_MINIO_REGION", "us-east-1"),  # OPTIONAL
+            "MINIO_DEFAULT_BUCKET": "django-minio-backend-default-dev-bucket",  #  OPTIONAL. Default = auto-generated-bucket-media-files | PRIVATE by default if not added below
+            "MINIO_PRIVATE_BUCKETS": ['django-backend-dev-private', 'my-media-files-bucket', ],  # OPTIONAL
+            "MINIO_PUBLIC_BUCKETS": ['django-backend-dev-public', 't5p2g08k31', '7xi7lx9rjh'],  # OPTIONAL
             "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # OPTIONAL. Default is 7 days (longest) if not defined
-            "MINIO_CONSISTENCY_CHECK_ON_START": True,
-            "MINIO_BUCKET_CHECK_ON_SAVE": False,
+            "MINIO_CONSISTENCY_CHECK_ON_START": True,  # OPTIONAL.
+            "MINIO_BUCKET_CHECK_ON_SAVE": False,  # OPTIONAL.
             "MINIO_POLICY_HOOKS": [  # List[Tuple[str, dict]]  # OPTIONAL
                 # ('django-backend-dev-private', dummy_policy)
             ],

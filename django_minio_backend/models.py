@@ -79,6 +79,8 @@ class MinioBackend(Storage):
                  storage_name: str = 'default',
                  *args,
                  **kwargs):
+        if not storages.backends[storage_name].get("OPTIONS"):
+            raise ConfigurationError("OPTIONS not present in STORAGES in settings.py")
         # received kwargs are preferred. missing keys are filled from storages.backends
         kwargs = {**kwargs, **{k: v for k, v in storages.backends[storage_name]["OPTIONS"].items() if k not in kwargs}}
 
@@ -469,6 +471,7 @@ class MinioBackendStatic(MinioBackend):
 
     def __init__(self, *args, **kwargs):
         static_files_bucket = kwargs.get("MINIO_STATIC_FILES_BUCKET", self.DEFAULT_STATIC_FILES_BUCKET)
+        logger.debug(f"MinioBackendStatic.static_files_bucket = {static_files_bucket}")
         kwargs["MINIO_PUBLIC_BUCKETS"] = [static_files_bucket, ]  # hardcoded. static files must be public
         super().__init__(bucket_name=static_files_bucket, storage_name="staticfiles", *args, **kwargs)
 
