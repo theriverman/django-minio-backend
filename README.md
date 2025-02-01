@@ -16,6 +16,7 @@ See [minio/minio-py](https://github.com/minio/minio-py) for the source.
 The following set of features are available in **django-minio-backend**:
 * Django File Storage System Integration
   * Compliance with the `django.core.files.storage.Storage` class
+  * Compliance with the `STORAGES` setting introduced in Django 4.2
   * Static Files Support
 * Utilise/manage private and public buckets
   * Create buckets with custom policy hooks (`MINIO_POLICY_HOOKS`)
@@ -27,6 +28,8 @@ The following set of features are available in **django-minio-backend**:
   * initialize_buckets
   * is_minio_available
 * Support for multiple MinIO backends via separate `settings.py` entries
+
+For more about `STORAGES`, see [Django 4.2 release notes / Custom file storages](https://docs.djangoproject.com/en/5.1/releases/4.2/#custom-file-storages).
 
 ## Integration
 1. Get and install the package:
