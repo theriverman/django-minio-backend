@@ -50,6 +50,11 @@ For more about `STORAGES`, see [Django 4.2 release notes / Custom file storages]
     from datetime import timedelta
     
     STORAGES = {  # -- ADDED in Django 5.1
+        # "staticfiles": {  # <-- DEFAULT STATIC FILES STORAGE
+            # "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+            # Uncomment this storage to use Django's default static files storage
+            # and add STATIC_ROOT outside the STORAGES dict
+        # },
         "staticfiles": {
             "BACKEND": "django_minio_backend.models.MinioBackendStatic",
             "OPTIONS": {
@@ -250,6 +255,7 @@ The following list summarises the key characteristics of **django-minio-backend*
     * STATIC files are stored in a single bucket managed via `MINIO_STATIC_FILES_BUCKET`.
     * STATIC files are **public** by default and must remain public to avoid certain Django admin errors.
     * The value of `MEDIA_URL` is ignored, but it must be defined otherwise Django will throw an error.
+  * If you're serving static files with the default backend, add `STATIC_ROOT` outside `STORAGES` in your settings.
   * Bucket existence is **not** checked on a save by default.
     To enable this guard, set `MINIO_BUCKET_CHECK_ON_SAVE = True` in your `settings.py`.
   * Bucket existences are **not** checked on Django start by default.

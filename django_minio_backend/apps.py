@@ -19,7 +19,7 @@ class DjangoMinioBackendConfig(AppConfig):
             raise ConfigurationError("STORAGES not configured in settings. Cannot use Django minio backend.")
         # Verify STATIC storage backend
         staticfiles = storages.backends.get("staticfiles")
-        if staticfiles["BACKEND"] == f"{MinioBackend.__module__}.{MinioBackendStatic.__name__}":
+        if staticfiles and staticfiles["BACKEND"] == f"{MinioBackend.__module__}.{MinioBackendStatic.__name__}":
             # Validate configuration combinations for EXTERNAL ENDPOINT
             if "OPTIONS" not in staticfiles:
                 raise ConfigurationError("OPTIONS not configured in STORAGES. Cannot use Django minio backend.")
@@ -44,7 +44,7 @@ class DjangoMinioBackendConfig(AppConfig):
                 continue  # ignore other storage backend
             if "OPTIONS" not in storage_config:
                 raise ConfigurationError("OPTIONS not configured in STORAGES. Cannot use Django minio backend.")
-            options = staticfiles["OPTIONS"]
+            options = storage_config["OPTIONS"]
             external_address = bool(options.get('MINIO_EXTERNAL_ENDPOINT'))
             external_use_https = options.get('MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
             if (external_address and external_use_https is None) or (not external_address and external_use_https):
