@@ -26,6 +26,8 @@ The following set of features are available in **django-minio-backend**:
 * Management Commands:
   * initialize_buckets
   * is_minio_available
+  * clean_orphaned_minio_files
+* URL Caching for improved performance
 
 ## Integration
 1. Get and install the package:
@@ -91,7 +93,10 @@ The following set of features are available in **django-minio-backend**:
     # MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for MEDIA_ROOT
     # MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for STATIC_ROOT
     MINIO_BUCKET_CHECK_ON_SAVE = True  # Default: True // Creates bucket if missing, then save
-    
+    MINIO_URL_CACHE_TIMEOUT = 60 * 60 * 8  # 8 hours in seconds, defaults to 80% of MINIO_URL_EXPIRY_HOURS
+    MINIO_URL_CACHE_PREFIX = 'minio_url_'  # Prefix for cache keys to avoid collisions
+    MINIO_URL_CACHING_ENABLED = False  # Enable/disable URL caching, defaults to False
+
     # Custom HTTP Client (OPTIONAL)
     import os
     import certifi
@@ -184,6 +189,21 @@ otherwise **django-minio-backend** will raise an exception. This setting determi
 
 **Note:** If `MINIO_MEDIA_FILES_BUCKET` is not set, the default value (`auto-generated-bucket-media-files`) will be used. Policy setting for default buckets is **private**.
 
+### URL Caching
+**django-minio-backend** includes a caching layer for pre-signed URLs to improve performance. This is particularly useful for applications that frequently access the same files, as it prevents regenerating URLs for the same objects repeatedly.
+
+The cache uses Django's cache framework and stores URLs with a key based on the bucket name, file name, and ETag for uniqueness. For public buckets, caching is skipped as the URLs are static.
+
+URL caching is **disabled by default**. To enable and configure URL caching, you can set the following parameters in your `settings.py`:
+```python
+# URL caching configuration (optional)
+MINIO_URL_CACHING_ENABLED = True  # Enable URL caching (disabled by default)
+MINIO_URL_CACHE_TIMEOUT = 60 * 60 * 8  # 8 hours in seconds
+MINIO_URL_CACHE_PREFIX = 'minio_url_'  # Prefix for cache keys
+```
+
+If `MINIO_URL_CACHE_TIMEOUT` is not set, it defaults to 80% of `MINIO_URL_EXPIRY_HOURS` to ensure cached URLs don't expire before they're regenerated.
+
 ### Health Check
 To check the connection link between Django and MinIO, use the provided `MinioBackend.is_minio_available()` method.<br>
 It returns a `MinioServerStatus` instance which can be quickly evaluated as boolean.<br>
@@ -213,6 +233,34 @@ of [examples/policy_hook.example.py](examples/policy_hook.example.py).
 When enabled, the `initialize_buckets` management command gets called automatically when Django starts. <br>
 This command connects to the configured MinIO server and checks if all buckets defined in `settings.py`. <br>
 In case a bucket is missing or its configuration differs, it gets created and corrected.
+
+### Management Commands
+
+#### initialize_buckets
+This `django-admin` command creates both the private and public buckets in case one of them does not exist,
+and sets the *public* bucket's privacy policy from `private`(default) to `public`.<br>
+    ```bash
+    python manage.py initialize_buckets
+    ```
+
+    Code reference: [initialize_buckets.py](django_minio_backend/management/commands/initialize_buckets.py).
+
+#### clean_orphaned_minio_files
+This management command helps maintain the integrity of your MinIO storage by:
+
+1. Identifying and removing orphaned files in MinIO buckets that are no longer referenced in the database
+2. Identifying database references to files that no longer exist in MinIO buckets
+
+Usage:
+```bash
+python manage.py clean_orphaned_minio_files [--dry-run] [--check-missing]
+```
+
+Options:
+- `--dry-run`: Run without actually deleting files (simulation mode)
+- `--check-missing`: Check for database references to missing MinIO files
+
+This command is useful for periodic maintenance to ensure your storage and database remain in sync, preventing storage leaks and identifying broken references.
 
 ### Reference Implementation
 For a reference implementation, see [Examples](examples).
