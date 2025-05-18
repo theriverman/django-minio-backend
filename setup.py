@@ -25,7 +25,7 @@ setup(
     author_email='kristof@daja.hu',
     install_requires=[
         'Django>=4.2',
-        'minio>=7.2.8'
+        'minio>=7.2'
     ],
     classifiers=[
         'Environment :: Web Environment',

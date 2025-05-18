@@ -13,8 +13,7 @@ import mimetypes
 import ssl
 import datetime
 from pathlib import Path
-from typing import Union, List
-
+from typing import Union, List, Tuple
 # noinspection PyPackageRequirements MinIO_requirement
 import certifi
 import minio
@@ -23,6 +22,8 @@ import minio.error
 import minio.helpers
 # noinspection PyPackageRequirements MinIO_requirement
 import urllib3
+# noinspection PyPackageRequirements MinIO_requirement
+import urllib3.exceptions
 from django.core.files import File
 from django.core.files.storage import Storage, storages
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -137,20 +138,20 @@ class MinioBackend(Storage):
 
     def _save(self, file_path_name: str, content: InMemoryUploadedFile) -> str:
         """
-        Saves file to Minio by implementing Minio.put_object()
+        Saves a file to Minio by implementing Minio.put_object()
         :param file_path_name (str): Path to file + file name + file extension | i.e.: images/2018-12-31/cat.png
         :param content (InMemoryUploadedFile): File object
         :return:
         """
         if self.__MINIO_BUCKET_CHECK_ON_SAVE:
-            # Create bucket if not exists
+            # Create a bucket if not exists
             self.check_bucket_existence()
 
-        # Check if object with name already exists; delete if so
+        # Check if an object with a name already exists; delete it if so
         try:
             if self._REPLACE_EXISTING and self.stat(file_path_name):
                 self.delete(file_path_name)
-        except AttributeError:
+        except (minio.error.S3Error, minio.error.ServerError, urllib3.exceptions.MaxRetryError, AttributeError):
             pass
 
         # Upload object
@@ -197,14 +198,14 @@ class MinioBackend(Storage):
             resp.release_conn()
         return file
 
-    def stat(self, name: str) -> Union[minio.datatypes.Object, bool]:
-        """Get object information and metadata of an object"""
-        object_name = Path(name).as_posix()
-        try:
-            obj = self.client.stat_object(self.bucket, object_name=object_name)
-            return obj
-        except (minio.error.S3Error, minio.error.ServerError, urllib3.exceptions.MaxRetryError):
-            raise AttributeError(f'Could not stat object ({name}) in bucket ({self.bucket})')
+    def stat(self, name: str) -> minio.datatypes.Object:
+        """
+        Get object information and metadata of an object
+        :raises minio.error.S3Error: If the object doesn't exist
+        :raises minio.error.ServerError: If the minio backend couldn't be reached
+        :raises urllib3.exceptions.MaxRetryError: If the minio backend request has timed out
+        """
+        return self.client.stat_object(self.bucket, object_name=Path(name).as_posix())
 
     def delete(self, name: str):
         """
@@ -218,35 +219,59 @@ class MinioBackend(Storage):
         self.client.remove_object(bucket_name=self.bucket, object_name=object_name)
 
     def exists(self, name: str) -> bool:
-        """Check if an object with name already exists"""
+        """Check if an object with the name already exists"""
         object_name = Path(name).as_posix()
         try:
             if self.stat(object_name):
                 return True
             return False
-        except AttributeError as e:
-            logger.info(e)
+        except (minio.error.S3Error, minio.error.ServerError, urllib3.exceptions.MaxRetryError, AttributeError) as e:
+            logger.info(msg=f"Object could not be found: {self.bucket}/{name}", exc_info=e)
             return False
 
-    def listdir(self, bucket_name: str):
-        """List all objects in a bucket"""
-        objects = self.client.list_objects(bucket_name=bucket_name, recursive=True)
-        return [(obj.object_name, obj) for obj in objects]
+    def listdir(self, path: str = '', **kwargs) -> Tuple[List[str], List[str]]:
+        """
+        List the contents of the specified path in the configured bucket.
+        Return a 2-tuple of lists: (directories, files).
+        This method sets the `recursive` kwarg to True by default.
+        The `prefix` key in kwargs will be ignored. Provide it through the `path` arg.
+        :kwargs: Passed on to the underlying MinIO client's list_objects() method
+        """
+        prefix = path.strip('/')
+        if prefix:
+            prefix += '/'
+        else:
+            prefix = ''
+        prefix_len = len(prefix)
+
+        # Always recursive to find everything under the prefix
+        kwargs.setdefault('recursive', True)
+
+        dirs = set()
+        files = []
+
+        objects = self.client.list_objects(bucket_name=self.bucket, prefix=prefix, **kwargs)
+        for obj in objects:
+            relpath = obj.object_name[prefix_len:]
+            if not relpath:
+                continue
+            if '/' in relpath:
+                subdir = relpath.split('/', 1)[0]
+                dirs.add(subdir)
+            else:
+                files.append(relpath)
+        return sorted(dirs), sorted(files)
 
     def size(self, name: str) -> int:
         """Get an object's size"""
-        object_name = Path(name).as_posix()
-        try:
-            obj = self.stat(object_name)
-            return obj.size if obj else 0
-        except AttributeError:
-            return 0
+        obj = self.stat(Path(name).as_posix())
+        return obj.size
 
     def url(self, name: str):
         """
         Returns url to object.
-        If bucket is public, direct link is provided.
-        if bucket is private, a pre-signed link is provided.
+        If the bucket is public, a direct link is provided.
+        If the bucket is private, a pre-signed link is provided.
         :param name: (str) file path + file name + suffix
         :return: (str) URL to object
         """
