@@ -264,7 +264,7 @@ class MinioBackend(Storage):
 
         if self.is_bucket_public:
             # noinspection PyProtectedMember
-            base_url = client._base_url.build("GET", self.__MINIO_REGION).geturl()
+            base_url = client._base_url.build(method="GET", region=self.__MINIO_REGION).geturl()
             return f'{base_url}{self.bucket}/{name}'
 
         # private bucket
