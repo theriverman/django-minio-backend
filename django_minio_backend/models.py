@@ -37,9 +37,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_iso_date() -> str:
-    """Get current date in ISO8601 format [year-month-day] as string"""
+    """Get current date in ISO8601 format [year-month-day] (zero-padded) as string"""
     now = datetime.datetime.now(datetime.UTC)
-    return f"{now.year}-{now.month}-{now.day}"
+    return now.strftime("%Y-%m-%d")
 
 
 def iso_date_prefix(_, file_name_ext: str) -> str:
@@ -108,8 +108,8 @@ class MinioBackend(Storage):
         self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = kwargs.get("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
         self.__MINIO_BUCKET_CHECK_ON_SAVE: bool = kwargs.get("MINIO_BUCKET_CHECK_ON_SAVE", False)
         self.__MINIO_URL_EXPIRY_HOURS = kwargs.get("MINIO_URL_EXPIRY_HOURS", datetime.timedelta(days=7))
-        self.__BASE_URL = ("https://" if self.__MINIO_USE_HTTPS else "http://") + self.__MINIO_ENDPOINT
-        self.__BASE_URL_EXTERNAL = ("https://" if self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS else "http://") + self.__MINIO_EXTERNAL_ENDPOINT
+        self.__BASE_URL = f"{"https://" if self.__MINIO_USE_HTTPS else "http://"}{self.__MINIO_ENDPOINT}"
+        self.__BASE_URL_EXTERNAL = f"{"https://" if self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS else "http://"}{self.__MINIO_EXTERNAL_ENDPOINT}"
         self.__SAME_ENDPOINTS = self.__MINIO_ENDPOINT == self.__MINIO_EXTERNAL_ENDPOINT
 
         self.PRIVATE_BUCKETS: List[str] = kwargs.get("MINIO_PRIVATE_BUCKETS", [])
@@ -190,13 +190,13 @@ class MinioBackend(Storage):
 
         if mode != 'rb':
             raise ValueError('Files retrieved from MinIO are read-only. Use save() method to override contents')
+        resp = self.client.get_object(self.bucket, object_name, **kwargs)
         try:
-            resp = self.client.get_object(self.bucket, object_name, **kwargs)
             file = S3File(file=io.BytesIO(resp.read()), name=object_name, storage=self)
+            return file
         finally:
             resp.close()
             resp.release_conn()
-        return file
 
     def stat(self, name: str) -> minio.datatypes.Object:
         """
@@ -297,21 +297,21 @@ class MinioBackend(Storage):
         """The MinIO storage system doesn't support absolute paths"""
         raise NotImplementedError("The MinIO storage system doesn't support absolute paths.")
 
-    def get_accessed_time(self, name: str) -> datetime:
+    def get_accessed_time(self, name: str) -> datetime.datetime:
         """
         Return the last accessed time (as a datetime) of the file specified by
         name. The datetime will be timezone-aware if USE_TZ=True.
         """
         raise NotImplementedError('MinIO does not store last accessed time')
 
-    def get_created_time(self, name: str) -> datetime:
+    def get_created_time(self, name: str) -> datetime.datetime:
         """
         Return the creation time (as a datetime) of the file specified by name.
         The datetime will be timezone-aware if USE_TZ=True.
         """
         raise NotImplementedError('MinIO does not store creation time')
 
-    def get_modified_time(self, name: str) -> datetime:
+    def get_modified_time(self, name: str) -> datetime.datetime:
         """
         Return the last modified time (as a datetime) of the file specified by
         name. The datetime will be timezone-aware if USE_TZ=True.
@@ -399,23 +399,28 @@ class MinioBackend(Storage):
         Instantiates a new Minio client and assigns it to their respective class variable
         :param external: If True, the returned value is self.__CLIENT_EXT instead of self.__CLIENT
         """
-        self.__CLIENT = minio.Minio(
-            endpoint=self.__MINIO_ENDPOINT,
-            access_key=self.__MINIO_ACCESS_KEY,
-            secret_key=self.__MINIO_SECRET_KEY,
-            secure=self.__MINIO_USE_HTTPS,
-            http_client=self.HTTP_CLIENT,
-            region=self.__MINIO_REGION,
-        )
-        self.__CLIENT_EXT = minio.Minio(
-            endpoint=self.__MINIO_EXTERNAL_ENDPOINT,
-            access_key=self.__MINIO_ACCESS_KEY,
-            secret_key=self.__MINIO_SECRET_KEY,
-            secure=self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS,
-            http_client=self.HTTP_CLIENT,
-            region=self.__MINIO_REGION,
-        )
-        return self.__CLIENT_EXT if external else self.__CLIENT
+        if external:
+            if not self.__CLIENT_EXT:
+                self.__CLIENT_EXT = minio.Minio(
+                    endpoint=self.__MINIO_EXTERNAL_ENDPOINT,
+                    access_key=self.__MINIO_ACCESS_KEY,
+                    secret_key=self.__MINIO_SECRET_KEY,
+                    secure=self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS,
+                    http_client=self.HTTP_CLIENT,
+                    region=self.__MINIO_REGION,
+                )
+            return self.__CLIENT_EXT
+        else:
+            if not self.__CLIENT:
+                self.__CLIENT = minio.Minio(
+                    endpoint=self.__MINIO_ENDPOINT,
+                    access_key=self.__MINIO_ACCESS_KEY,
+                    secret_key=self.__MINIO_SECRET_KEY,
+                    secure=self.__MINIO_USE_HTTPS,
+                    http_client=self.HTTP_CLIENT,
+                    region=self.__MINIO_REGION,
+                )
+            return self.__CLIENT
 
     # MAINTENANCE
     def check_bucket_existence(self):
@@ -478,7 +483,7 @@ class MinioBackend(Storage):
             )
         # mandatory parameters must be configured
         mandatory_parameters = (self.__MINIO_ENDPOINT, self.__MINIO_ACCESS_KEY, self.__MINIO_SECRET_KEY)
-        if any([bool(x) is False for x in mandatory_parameters]) or (self.__MINIO_USE_HTTPS is None):
+        if not all(mandatory_parameters):
             raise ConfigurationError(
                 "A mandatory parameter (MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY or MINIO_USE_HTTPS) hasn't been configured properly"
             )
