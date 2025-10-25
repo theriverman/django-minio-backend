@@ -13,21 +13,20 @@ import mimetypes
 import ssl
 import datetime
 from pathlib import Path
-from typing import Union, List, Tuple
-# noinspection PyPackageRequirements MinIO_requirement
+from typing import Union, List, Tuple, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import certifi
 import minio
 import minio.datatypes
 import minio.error
 import minio.helpers
-# noinspection PyPackageRequirements MinIO_requirement
 import urllib3
-# noinspection PyPackageRequirements MinIO_requirement
 import urllib3.exceptions
 from django.core.files import File
 from django.core.files.storage import Storage, storages
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.deconstruct import deconstructible
+
 
 from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting, get_storages_setting
 
@@ -186,11 +185,10 @@ class MinioBackend(Storage):
         :param name (str): object_name [path to file excluding bucket name which is implied]
         :kwargs (dict): passed on to the underlying MinIO client's get_object() method
         """
-        resp: urllib3.response.HTTPResponse = urllib3.response.HTTPResponse()
 
         if mode != 'rb':
             raise ValueError('Files retrieved from MinIO are read-only. Use save() method to override contents')
-        resp = self.client.get_object(self.bucket, object_name, **kwargs)
+        resp: urllib3.response.HTTPResponse = self.client.get_object(self.bucket, object_name, **kwargs)
         try:
             file = S3File(file=io.BytesIO(resp.read()), name=object_name, storage=self)
             return file
@@ -428,11 +426,86 @@ class MinioBackend(Storage):
         if not self.client.bucket_exists(self.bucket):
             self.client.make_bucket(bucket_name=self.bucket)
 
-    def check_bucket_existences(self):  # Execute this handler upon starting Django to make sure buckets exist
-        """Check if all buckets configured in settings.py do exist. If not, create them"""
-        for bucket in [*self.PUBLIC_BUCKETS, *self.PRIVATE_BUCKETS]:
-            if not self.client.bucket_exists(bucket):
-                self.client.make_bucket(bucket_name=bucket)
+    def check_bucket_existences(self, max_workers: Optional[int] = None):
+        """
+        Check if all buckets configured in settings.py exist. Create them if they don't.
+
+        Args:
+            max_workers: Maximum number of concurrent workers.
+                        Defaults to min(bucket_count, 10)
+
+        Raises:
+            Exception: If any bucket check or creation fails
+        """
+        all_buckets = [*self.PUBLIC_BUCKETS, *self.PRIVATE_BUCKETS]
+
+        if not all_buckets:
+            logger.warning("No buckets configured")
+            return
+
+        # Calculate optimal worker count
+        if max_workers is None:
+            max_workers = min(len(all_buckets), 10)
+
+        def check_and_create_bucket(bucket: str) -> Tuple[str, bool, Optional[Exception]]:
+            """
+            Check and create a single bucket.
+
+            Returns:
+                Tuple of (bucket_name, already_existed, error)
+            """
+            try:
+                exists = self.client.bucket_exists(bucket)
+                if not exists:
+                    self.client.make_bucket(bucket_name=bucket)
+                    logger.info(f"Created bucket: {bucket}")
+                    return bucket, False, None
+                else:
+                    logger.debug(f"Bucket already exists: {bucket}")
+                    return bucket, True, None
+            except Exception as exc:
+                logger.error(f"Error checking/creating bucket {bucket}: {exc}", exc_info=True)
+                return bucket, False, exc
+
+        errors = []
+        created_count = 0
+        existing_count = 0
+
+        logger.info(f"Checking {len(all_buckets)} buckets with {max_workers} workers")
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all bucket checks
+            future_to_bucket = {
+                executor.submit(check_and_create_bucket, bucket): bucket
+                for bucket in all_buckets
+            }
+
+            # Process results as they complete
+            for future in as_completed(future_to_bucket):
+                bucket_name = future_to_bucket[future]
+                try:
+                    bucket, existed, error = future.result()
+                    if error:
+                        errors.append((bucket, error))
+                    elif existed:
+                        existing_count += 1
+                    else:
+                        created_count += 1
+                except Exception as e:
+                    # Catch any unexpected errors from the future itself
+                    logger.error(f"Unexpected error processing bucket {bucket_name}: {e}")
+                    errors.append((bucket_name, e))
+
+        # Summary logging
+        logger.info(
+            f"Bucket check complete: {existing_count} existed, "
+            f"{created_count} created, {len(errors)} errors"
+        )
+
+        # Raise if any errors occurred
+        if errors:
+            error_msg = "\n".join([f"  - {bucket}: {error}" for bucket, error in errors])
+            raise Exception(f"Failed to check/create {len(errors)} bucket(s):\n{error_msg}")
 
     def set_bucket_policy(self, bucket: str, policy: dict):
         """Set a custom bucket policy"""
