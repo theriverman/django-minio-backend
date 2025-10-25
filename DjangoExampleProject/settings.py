@@ -167,12 +167,12 @@ STORAGES = {  # -- ADDED IN Django 5.1
     "default": {
         "BACKEND": "django_minio_backend.models.MinioBackend",
         "OPTIONS": {
-            "MINIO_ENDPOINT": os.getenv("GH_MINIO_ENDPOINT", "play.min.io"),
-            "MINIO_EXTERNAL_ENDPOINT": os.getenv("GH_MINIO_EXTERNAL_ENDPOINT", "play.min.io"),  # OPTIONAL
-            "MINIO_EXTERNAL_ENDPOINT_USE_HTTPS": strtobool(os.getenv("GH_MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", "true")),  # OPTIONAL
-            "MINIO_ACCESS_KEY": os.getenv("GH_MINIO_ACCESS_KEY", "Q3AM3UQ867SPQQA43P2F"),
-            "MINIO_SECRET_KEY": os.getenv("GH_MINIO_SECRET_KEY", "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"),
-            "MINIO_USE_HTTPS": strtobool(os.getenv("GH_MINIO_USE_HTTPS", "true")),
+            "MINIO_ENDPOINT": os.getenv("GH_MINIO_ENDPOINT", "localhost:9000"),
+            "MINIO_EXTERNAL_ENDPOINT": os.getenv("GH_MINIO_EXTERNAL_ENDPOINT", "localhost:9000"),  # OPTIONAL
+            "MINIO_EXTERNAL_ENDPOINT_USE_HTTPS": strtobool(os.getenv("GH_MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", "false")),  # OPTIONAL
+            "MINIO_ACCESS_KEY": os.getenv("GH_MINIO_ACCESS_KEY", "minioadmin"),
+            "MINIO_SECRET_KEY": os.getenv("GH_MINIO_SECRET_KEY", "minioadmin"),
+            "MINIO_USE_HTTPS": strtobool(os.getenv("GH_MINIO_USE_HTTPS", "false")),
             "MINIO_REGION": os.getenv("GH_MINIO_REGION", "us-east-1"),  # OPTIONAL
             "MINIO_DEFAULT_BUCKET": "django-minio-backend-default-dev-bucket",  #  OPTIONAL. Default = auto-generated-bucket-media-files | PRIVATE by default if not added below
             "MINIO_PRIVATE_BUCKETS": ['django-backend-dev-private', 'my-media-files-bucket', ],  # OPTIONAL
