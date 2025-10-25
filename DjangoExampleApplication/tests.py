@@ -67,10 +67,10 @@ class PrivateAttachmentTestCase(TestCase):
     filename = f'private_audience-868074_1920_{int(time.time())}.jpg'  # adding unix time makes our filename unique
 
     def setUp(self):
-        ct = ContentType.objects.get(app_label='auth', model='user')  # PublicAttachment is generic so this is needed
+        ct = ContentType.objects.get(app_label='auth', model='user')  # PrivateAttachment is generic so this is needed
         with open(test_file_path, 'rb') as f:
             # noinspection PyUnresolvedReferences
-            self.obj = PublicAttachment.objects.create()
+            self.obj = PrivateAttachment.objects.create()
             self.obj.ct = ct
             self.obj.object_id = 1  # we associate this uploaded file to user with pk=1
             self.obj.file.save(name=self.filename, content=File(f), save=True)
