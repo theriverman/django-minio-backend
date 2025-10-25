@@ -54,11 +54,17 @@ class GenericAttachment(models.Model):
 class PublicAttachment(models.Model):
     def set_file_path_name(self, file_name_ext: str) -> str:
         """
-        Defines the full absolute path to the file in the bucket. The original content's type is used as parent folder.
-        :param file_name_ext: (str) File name + extension. i.e.: cat.png OR images/animals/2019/cat.png
+        Defines the full absolute path to the file in the bucket.
+        The original content's type is used as parent folder.
+        :param file_name_ext: (str) File name + extension. I.e.: cat.png OR images/animals/2019/cat.png
         :return: (str) Absolute path to file in Minio Bucket
         """
-        return f"{get_iso_date()}/{self.content_type.name}/{file_name_ext}"
+        if self.content_type:
+            ct_name = self.content_type.name
+        else:
+            # Fallback: use the model's own content type
+            ct_name = ContentType.objects.get_for_model(self.__class__).name
+        return f"{get_iso_date()}/{ct_name}/{file_name_ext}"
 
     def delete(self, *args, **kwargs):
         """
@@ -94,11 +100,17 @@ class PublicAttachment(models.Model):
 class PrivateAttachment(models.Model):
     def set_file_path_name(self, file_name_ext: str) -> str:
         """
-        Defines the full absolute path to the file in the bucket. The original content's type is used as parent folder.
+        Defines the full absolute path to the file in the bucket.
+        The original content's type is used as parent folder.
         :param file_name_ext: (str) File name + extension. I.e.: cat.png OR images/animals/2019/cat.png
         :return: (str) Absolute path to file in Minio Bucket
         """
-        return f"{get_iso_date()}/{self.content_type.name}/{file_name_ext}"
+        if self.content_type:
+            ct_name = self.content_type.name
+        else:
+            # Fallback: use the model's own content type
+            ct_name = ContentType.objects.get_for_model(self.__class__).name
+        return f"{get_iso_date()}/{ct_name}/{file_name_ext}"
 
     def delete(self, *args, **kwargs):
         """
