@@ -8,11 +8,18 @@ __all__ = ['DjangoMinioBackendConfig', ]
 
 logger = logging.getLogger(__name__)
 
+def _validate_external_endpoint(options):
+    external_address = bool(options.get('MINIO_EXTERNAL_ENDPOINT'))
+    external_use_https = options.get('MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
+    if (external_address and external_use_https is None) or (not external_address and external_use_https):
+        raise ConfigurationError(
+            'MINIO_EXTERNAL_ENDPOINT must be configured together with MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
+
 
 class DjangoMinioBackendConfig(AppConfig):
     name = 'django_minio_backend'
 
-    def ready(self):
+    def ready(self) -> None|bool:
         from django.core.files.storage import storages
 
         if not get_setting('STORAGES'):
@@ -24,11 +31,12 @@ class DjangoMinioBackendConfig(AppConfig):
             if "OPTIONS" not in staticfiles:
                 raise ConfigurationError("OPTIONS not configured in STORAGES. Cannot use Django minio backend.")
             options = staticfiles["OPTIONS"]
-            external_address = bool(options.get('MINIO_EXTERNAL_ENDPOINT'))
-            external_use_https = options.get('MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
-            if (external_address and external_use_https is None) or (not external_address and external_use_https):
-                raise ConfigurationError(
-                    'MINIO_EXTERNAL_ENDPOINT must be configured together with MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
+            # external_address = bool(options.get('MINIO_EXTERNAL_ENDPOINT'))
+            # external_use_https = options.get('MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
+            # if (external_address and external_use_https is None) or (not external_address and external_use_https):
+            #     raise ConfigurationError(
+            #         'MINIO_EXTERNAL_ENDPOINT must be configured together with MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
+            _validate_external_endpoint(options)
             mbs: MinioBackendStatic = storages.create_storage(staticfiles)
             mbs.validate_settings()
             if staticfiles["OPTIONS"].get("MINIO_CONSISTENCY_CHECK_ON_START", False):
@@ -45,11 +53,12 @@ class DjangoMinioBackendConfig(AppConfig):
             if "OPTIONS" not in storage_config:
                 raise ConfigurationError("OPTIONS not configured in STORAGES. Cannot use Django minio backend.")
             options = storage_config["OPTIONS"]
-            external_address = bool(options.get('MINIO_EXTERNAL_ENDPOINT'))
-            external_use_https = options.get('MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
-            if (external_address and external_use_https is None) or (not external_address and external_use_https):
-                raise ConfigurationError(
-                    'MINIO_EXTERNAL_ENDPOINT must be configured together with MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
+            # external_address = bool(options.get('MINIO_EXTERNAL_ENDPOINT'))
+            # external_use_https = options.get('MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
+            # if (external_address and external_use_https is None) or (not external_address and external_use_https):
+            #     raise ConfigurationError(
+            #         'MINIO_EXTERNAL_ENDPOINT must be configured together with MINIO_EXTERNAL_ENDPOINT_USE_HTTPS')
+            _validate_external_endpoint(options)
             mb: MinioBackend = storages.create_storage(storage_config)
             mb.validate_settings()
             # Execute on-start consistency check (if enabled)
