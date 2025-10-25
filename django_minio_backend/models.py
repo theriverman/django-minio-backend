@@ -107,8 +107,8 @@ class MinioBackend(Storage):
         self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = kwargs.get("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
         self.__MINIO_BUCKET_CHECK_ON_SAVE: bool = kwargs.get("MINIO_BUCKET_CHECK_ON_SAVE", False)
         self.__MINIO_URL_EXPIRY_HOURS = kwargs.get("MINIO_URL_EXPIRY_HOURS", datetime.timedelta(days=7))
-        self.__BASE_URL = f"{"https://" if self.__MINIO_USE_HTTPS else "http://"}{self.__MINIO_ENDPOINT}"
-        self.__BASE_URL_EXTERNAL = f"{"https://" if self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS else "http://"}{self.__MINIO_EXTERNAL_ENDPOINT}"
+        self.__BASE_URL = f'{"https://" if self.__MINIO_USE_HTTPS else "http://"}{self.__MINIO_ENDPOINT}'
+        self.__BASE_URL_EXTERNAL = f'{"https://" if self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS else "http://"}{self.__MINIO_EXTERNAL_ENDPOINT}'
         self.__SAME_ENDPOINTS = self.__MINIO_ENDPOINT == self.__MINIO_EXTERNAL_ENDPOINT
 
         self.PRIVATE_BUCKETS: List[str] = kwargs.get("MINIO_PRIVATE_BUCKETS", [])
