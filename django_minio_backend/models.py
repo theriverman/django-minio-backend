@@ -14,6 +14,8 @@ import ssl
 import datetime
 from pathlib import Path
 from typing import Union, List
+import hashlib
+from datetime import timedelta
 
 # noinspection PyPackageRequirements MinIO_requirement
 import certifi
@@ -27,6 +29,7 @@ from django.core.files import File
 from django.core.files.storage import Storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.deconstruct import deconstructible
+from django.core.cache import cache
 
 from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting
 
@@ -140,6 +143,15 @@ class MinioBackend(Storage):
             raise PrivatePublicMixedError(
                 f'One or more buckets have been declared both private and public: {bucket_name_intersection}'
             )
+        # Backend extension that caches presigned URLs to avoid regenerating them
+        #     on every request. The cache key is based on the file name and ETag.
+        self.url_caching_enabled = get_setting('MINIO_URL_CACHING_ENABLED', False)
+        self.url_cache_timeout = get_setting(
+            'MINIO_URL_CACHE_TIMEOUT', 
+            int(get_setting('MINIO_URL_EXPIRY_HOURS', timedelta(days=1)).total_seconds() * 0.8)
+        )
+        # Cache prefix to avoid collisions
+        self.cache_prefix = get_setting('MINIO_URL_CACHE_PREFIX', 'minio_url_')
 
     """
         django.core.files.storage.Storage
@@ -179,6 +191,26 @@ class MinioBackend(Storage):
             progress=self._META_KWARGS.get('progress', None),
         )
         return file_path.as_posix()
+
+    def _get_cache_key(self, name: str) -> str:
+        """
+        Generate a cache key based on the ETag.
+        For additional uniqueness, try to include the more unique metadata if available.
+        """
+        try:
+            # Try to get the ETag from the object stats
+            obj = self.stat(name)
+            etag = obj.etag if hasattr(obj, 'etag') else ''
+        except (AttributeError, Exception) as e:
+            etag = ''
+
+        # Create a unique key using the bucket name, file name, and ETag
+        key_parts = [self.bucket, name, etag]
+        key_string = '_'.join(key_parts)
+
+        # Create a hash of the key to ensure it's not too long for the cache
+        key_hash = hashlib.md5(key_string.encode()).hexdigest()
+        return f"{self.cache_prefix}{key_hash}"
 
     def get_available_name(self, name, max_length=None):
         """
@@ -257,6 +289,32 @@ class MinioBackend(Storage):
         Returns url to object.
         If bucket is public, direct link is provided.
         if bucket is private, a pre-signed link is provided.
+        This method does not use caching by default.
+        Set MINIO_URL_CACHING_ENABLED to True in settings.py to enable caching.
+        :param name: (str) file path + file name + suffix
+        :return: (str) URL to object
+        """
+        if self.is_bucket_public or not self.url_caching_enabled:
+            return self._generate_url(name)
+
+        # For private buckets with caching enabled, check cache first
+        cache_key = self._get_cache_key(name)
+        cached_url = cache.get(cache_key)
+
+        if cached_url:
+            return cached_url
+
+        # Cache miss, generate new URL
+        generated_url = self._generate_url(name)
+
+        # Cache the URL
+        cache.set(cache_key, generated_url, self.url_cache_timeout)
+
+        return generated_url
+
+    def _generate_url(self, name: str):
+        """
+        Original URL generation implementation for multiple uses.
         :param name: (str) file path + file name + suffix
         :return: (str) URL to object
         """
