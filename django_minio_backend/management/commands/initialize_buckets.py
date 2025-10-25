@@ -1,6 +1,5 @@
 from typing import List
 
-import minio.error
 from django.core.files.storage import storages
 from django.core.management.base import BaseCommand
 from django_minio_backend.models import MinioBackend, MinioBackendStatic
@@ -32,7 +31,7 @@ class Command(BaseCommand):
                 public_buckets = storage_config["OPTIONS"].get("MINIO_PUBLIC_BUCKETS", list())
                 private_buckets = storage_config["OPTIONS"].get("MINIO_PRIVATE_BUCKETS", list())
                 # MINIO_DEFAULT_BUCKET
-                if (b := storage_config["OPTIONS"].get("MINIO_DEFAULT_BUCKET")) not in [*public_buckets, *private_buckets]:
+                if (b := storage_config["OPTIONS"].get("MINIO_DEFAULT_BUCKET")) and b not in [*public_buckets, *private_buckets]:
                     private_buckets.append(b)  # DEFAULT BUCKET IS PRIVATE BY DEFAULT
                 for bucket in [*public_buckets, *private_buckets]:
                     mm: MinioBackend = MinioBackend(bucket_name=bucket, storage_name=storage_name, )
