@@ -14,6 +14,8 @@ django==5.2.7
     # via django-minio-backend (pyproject.toml)
 minio==7.2.18
     # via django-minio-backend (pyproject.toml)
+pillow==12.0.0
+    # via django-minio-backend (pyproject.toml)
 pycparser==2.23
     # via cffi
 pycryptodome==3.23.0

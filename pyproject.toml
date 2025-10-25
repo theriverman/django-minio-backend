@@ -11,6 +11,7 @@ requires-python = ">=3.11"
 dependencies = [
     "Django>=4.2",
     "minio>=7.2",
+    "Pillow>=10.0.0",  # Required for example application
 ]
 classifiers = [
     "Environment :: Web Environment",
