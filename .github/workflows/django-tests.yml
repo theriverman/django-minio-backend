@@ -8,38 +8,41 @@ on:
 
 jobs:
   test:
-    name: Python ${{ matrix.python }} / Django ${{ matrix.django }}
+    name: Python ${{ matrix.python-version }} / Django ${{ matrix.django-version }}
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
-        python: ['3.11', '3.12', '3.13', '3.14']
-        django: ['4.2', '5.0', '5.1']
-
-    services:
-      minio:
-        image: minio/minio
-        ports:
-          - 9000:9000
-        options: --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1" --health-interval 10s --health-timeout 5s --health-retries 5
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
+        python-version: ['3.11', '3.12', '3.13', '3.14']
+        django-version: ['4.2', '5.0', '5.1', '5.2']
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Start MinIO
+        run: |
+          docker run -d -p 9000:9000 \
+            --name minio \
+            -e "MINIO_ROOT_USER=minioadmin" \
+            -e "MINIO_ROOT_PASSWORD=minioadmin" \
+            minio/minio server /data --console-address ":9001"
+          
+          # Wait for MinIO to be ready
+          timeout 30 bash -c 'until curl -f http://localhost:9000/minio/health/live; do sleep 1; done'
+
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python }}
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
 
       - name: Install dependencies
         run: |
-          uv pip install --system Django~=${{ matrix.django }}
+          uv pip install --system Django~=${{ matrix.django-version }}
           uv pip install --system -r requirements.txt
 
       - name: Run migrations
