@@ -18,7 +18,7 @@ The following set of features are available in **django-minio-backend**:
   * Compliance with the `django.core.files.storage.Storage` class
   * Compliance with the `STORAGES` setting introduced in Django 4.2
   * Static Files Support
-* Utilise/manage private and public buckets
+* Utilise and manage private and public buckets
   * Create buckets with custom policy hooks (`MINIO_POLICY_HOOKS`)
   * Consistency Check on Start (`MINIO_CONSISTENCY_CHECK_ON_START`)
   * Bucket Check on Upload (`MINIO_BUCKET_CHECK_ON_SAVE`)
@@ -43,13 +43,13 @@ For more about `STORAGES`, see [Django 4.2 release notes / Custom file storages]
         # '...'
         'django_minio_backend.apps.DjangoMinioBackendConfig',  # https://github.com/theriverman/django-minio-backend
     ]
-    ``` 
+    ```
 
 3. Add the following parameters to your `settings.py`:
     ```python
     from datetime import timedelta
     
-    STORAGES = {  # -- ADDED in Django 5.1
+    STORAGES = {  # -- ADDED in Django 4.2
         # "staticfiles": {  # <-- DEFAULT STATIC FILES STORAGE
             # "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
             # Uncomment this storage to use Django's default static files storage
@@ -141,9 +141,9 @@ For more about `STORAGES`, see [Django 4.2 release notes / Custom file storages]
                                            storage=get_private_storage, upload_to=set_file_path_name)
     ```
     **Note:** It is highly recommended to declare your `MinioBackend` class instances in a callable function to avoid
-    future Django migration problems due to Django's model serialization.
+    future Django migration problems due to Django's model serialisation.
 
-5. Initialize the buckets & set their public policy (OPTIONAL):<br>
+5. Initialise the buckets & set their public policy (OPTIONAL):<br>
 This `django-admin` command creates both the private and public buckets in case one of them does not exist,
 and sets the *public* bucket's privacy policy from `private`(default) to `public`.<br>
     ```bash
@@ -219,7 +219,7 @@ It returns a `MinioServerStatus` instance which can be quickly evaluated as bool
 ```python
 from django_minio_backend import MinioBackend
 
-minio_available = MinioBackend().is_minio_available()  # An empty string is fine this time
+minio_available = MinioBackend().is_minio_available()  # The bucket_name parameter can be empty for this check
 if minio_available:
     print("OK")
 else:
@@ -238,7 +238,7 @@ of [examples/policy_hook.example.py](examples/policy_hook.example.py).
 
 ### Consistency Check On Start
 When enabled, the `initialize_buckets` management command gets called automatically when Django starts. <br>
-This command connects to the configured MinIO server and checks if all buckets defined in `settings.py`. <br>
+This command connects to the configured MinIO server and checks if all buckets defined in `settings.py` are present. <br>
 In case a bucket is missing or its configuration differs, it gets created and corrected.
 
 **Note:** The on-start consistency check equals to manually calling `python manage.py initialize_buckets`. <br>
@@ -250,27 +250,27 @@ For a reference implementation, see [Examples](examples).
 
 ## Behaviour
 The following list summarises the key characteristics of **django-minio-backend**:
-  * STORAGES introduced in Django 5.1 enables configuring multiple storage backends with great customisation.
-    * MEDIA and STATIC files must be configured separate and the latter must be named `staticfiles` explicitly.
+  * The STORAGES setting introduced in Django 4.2 enables configuring multiple storage backends with great customisation.
+    * MEDIA and STATIC files must be configured separately and the latter must be named `staticfiles` explicitly.
     * STATIC files are stored in a single bucket managed via `MINIO_STATIC_FILES_BUCKET`.
     * STATIC files are **public** by default and must remain public to avoid certain Django admin errors.
     * The value of `MEDIA_URL` is ignored, but it must be defined otherwise Django will throw an error.
   * If you're serving static files with the default backend, add `STATIC_ROOT` outside `STORAGES` in your settings.
-  * Bucket existence is **not** checked on a save by default.
+  * A bucket's existence is **not** checked on a save by default.
     To enable this guard, set `MINIO_BUCKET_CHECK_ON_SAVE = True` in your `settings.py`.
-  * Bucket existences are **not** checked on Django start by default.
+  * Bucket existence is **not** checked on Django start by default.
     To enable this guard, set `MINIO_CONSISTENCY_CHECK_ON_START = True` in your `settings.py`.
   * Many configuration errors are validated through `AppConfig` but not every error can be captured there.
-  * Files with the same name in the same bucket are **not** replaced on save by default. Django will store the newer file with an altered file name
+  * Files with the same name in the same bucket are **not** replaced on save by default. Django will store the newer file with an altered file name.
     To allow replacing existing files, pass the `replace_existing=True` kwarg to `MinioBackend`.
     For example:
     ```python
     image = models.ImageField(storage=storages.get_private_images_storage())
     ```
-  * Depending on your configuration, **django-minio-backend** may communicate over two kind of interfaces: internal and external.
+  * Depending on your configuration, **django-minio-backend** may communicate over two kinds of interfaces: internal and external.
     If your `settings.py` defines a different value for `MINIO_ENDPOINT` and `MINIO_EXTERNAL_ENDPOINT`, then the former will be used for internal communication
     between Django and MinIO, and the latter for generating URLs for users. This behaviour optimises the network communication.
-    See **Networking** below for a thorough explanation
+    See **Networking** below for a thorough explanation.
   * The uploaded object's content-type is guessed during save. If `mimetypes.guess_type` fails to determine the correct content-type, then it falls back to `application/octet-stream`.
 
 ## Networking and Docker
