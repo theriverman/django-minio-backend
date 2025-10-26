@@ -1,14 +1,17 @@
 import uuid
 import datetime
+import minio.error
+import urllib3.exceptions
 from django.db import models
 from django.db.models.fields.files import FieldFile
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
-from django_minio_backend import MinioBackend, iso_date_prefix
+from django_minio_backend import iso_date_prefix
+from DjangoExampleApplication.storages import get_public_storage, get_private_storage
 
 
 def get_iso_date() -> str:
-    """Get current date in ISO8601 format [year-month-day] as string"""
+    """Get the current date in ISO8601 format [year-month-day] as string"""
     now = datetime.datetime.now(datetime.UTC)
     return f"{now.year}-{now.month}-{now.day}"
 
@@ -19,7 +22,7 @@ class Image(models.Model):
     """
     objects = models.Manager()
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    image = models.ImageField(upload_to=iso_date_prefix, storage=MinioBackend(bucket_name='django-backend-dev-public'))
+    image = models.ImageField(upload_to=iso_date_prefix, storage=get_public_storage,)
 
     def delete(self, *args, **kwargs):
         """
@@ -51,11 +54,17 @@ class GenericAttachment(models.Model):
 class PublicAttachment(models.Model):
     def set_file_path_name(self, file_name_ext: str) -> str:
         """
-        Defines the full absolute path to the file in the bucket. The original content's type is used as parent folder.
-        :param file_name_ext: (str) File name + extension. ie.: cat.png OR images/animals/2019/cat.png
+        Defines the full absolute path to the file in the bucket.
+        The original content's type is used as parent folder.
+        :param file_name_ext: (str) File name + extension. I.e.: cat.png OR images/animals/2019/cat.png
         :return: (str) Absolute path to file in Minio Bucket
         """
-        return f"{get_iso_date()}/{self.content_type.name}/{file_name_ext}"
+        if self.content_type:
+            ct_name = self.content_type.name
+        else:
+            # Fallback: use the model's own content type
+            ct_name = ContentType.objects.get_for_model(self.__class__).name
+        return f"{get_iso_date()}/{ct_name}/{file_name_ext}"
 
     def delete(self, *args, **kwargs):
         """
@@ -68,7 +77,7 @@ class PublicAttachment(models.Model):
     def file_name(self):
         try:
             return self.file.name.split("/")[-1]
-        except AttributeError:
+        except (minio.error.S3Error, minio.error.ServerError, urllib3.exceptions.MaxRetryError):
             return "[Deleted Object]"
 
     @property
@@ -85,20 +94,23 @@ class PublicAttachment(models.Model):
     content_object = GenericForeignKey("content_type", "object_id")
 
     file: FieldFile = models.FileField(verbose_name="Object Upload",
-                                       storage=MinioBackend(  # Configure MinioBackend as storage backend here
-                                           bucket_name='django-backend-dev-public',
-                                       ),
-                                       upload_to=iso_date_prefix)
+                                       storage=get_public_storage, upload_to=iso_date_prefix)
 
 
 class PrivateAttachment(models.Model):
     def set_file_path_name(self, file_name_ext: str) -> str:
         """
-        Defines the full absolute path to the file in the bucket. The original content's type is used as parent folder.
-        :param file_name_ext: (str) File name + extension. ie.: cat.png OR images/animals/2019/cat.png
+        Defines the full absolute path to the file in the bucket.
+        The original content's type is used as parent folder.
+        :param file_name_ext: (str) File name + extension. I.e.: cat.png OR images/animals/2019/cat.png
         :return: (str) Absolute path to file in Minio Bucket
         """
-        return f"{get_iso_date()}/{self.content_type.name}/{file_name_ext}"
+        if self.content_type:
+            ct_name = self.content_type.name
+        else:
+            # Fallback: use the model's own content type
+            ct_name = ContentType.objects.get_for_model(self.__class__).name
+        return f"{get_iso_date()}/{ct_name}/{file_name_ext}"
 
     def delete(self, *args, **kwargs):
         """
@@ -111,7 +123,7 @@ class PrivateAttachment(models.Model):
     def file_name(self):
         try:
             return self.file.name.split("/")[-1]
-        except AttributeError:
+        except (minio.error.S3Error, minio.error.ServerError, urllib3.exceptions.MaxRetryError, AttributeError):
             return "[Deleted Object]"
 
     @property
@@ -127,8 +139,5 @@ class PrivateAttachment(models.Model):
     object_id = models.PositiveIntegerField(null=True, blank=True, verbose_name="Related Object's ID")
     content_object = GenericForeignKey("content_type", "object_id")
 
-    file: FieldFile = models.FileField(verbose_name="Object Upload",
-                                       storage=MinioBackend(  # Configure MinioBackend as storage backend here
-                                           bucket_name='django-backend-dev-private',
-                                       ),
+    file: FieldFile = models.FileField(verbose_name="Object Upload", storage=get_private_storage,
                                        upload_to=set_file_path_name)

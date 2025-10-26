@@ -1,10 +1,10 @@
 # noinspection PyPackageRequirements minIO_requirement
 import urllib3
-from typing import Union, List
+from typing import Any, Union, List
 from django.conf import settings
 
 
-__all__ = ['MinioServerStatus', 'PrivatePublicMixedError', 'ConfigurationError', 'get_setting', ]
+__all__ = ['MinioServerStatus', 'PrivatePublicMixedError', 'ConfigurationError', 'get_setting', 'get_storages_setting']
 
 
 class MinioServerStatus:
@@ -38,7 +38,7 @@ class MinioServerStatus:
                 self._bool = True
             else:
                 self._details.append(self.__OK)
-                self._details.append('Reason: ' + self.data)
+                self._details.append(f'Reason: {self.data}')
 
     def __bool__(self):
         return self._bool
@@ -70,6 +70,13 @@ class ConfigurationError(Exception):
     pass
 
 
-def get_setting(name, default=None):
+def get_setting(name, default=None) -> Any:
     """Get setting from settings.py. Return a default value if not defined"""
     return getattr(settings, name, default)
+
+
+def get_storages_setting(name, storage="default", default=None) -> Any:
+    """Get STORAGES setting from settings.py. Return a default value if not defined"""
+    storages: dict = settings.STORAGES
+    options: dict = storages[storage]["OPTIONS"]
+    return options.get(name, default)

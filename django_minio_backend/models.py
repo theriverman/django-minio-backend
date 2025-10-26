@@ -13,22 +13,22 @@ import mimetypes
 import ssl
 import datetime
 from pathlib import Path
-from typing import Union, List
-
-# noinspection PyPackageRequirements MinIO_requirement
+from typing import Union, List, Tuple, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import certifi
 import minio
 import minio.datatypes
 import minio.error
 import minio.helpers
-# noinspection PyPackageRequirements MinIO_requirement
 import urllib3
+import urllib3.exceptions
 from django.core.files import File
-from django.core.files.storage import Storage
+from django.core.files.storage import Storage, storages
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.deconstruct import deconstructible
 
-from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting
+
+from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting, get_storages_setting
 
 
 __all__ = ['MinioBackend', 'MinioBackendStatic', 'get_iso_date', 'iso_date_prefix', ]
@@ -36,9 +36,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_iso_date() -> str:
-    """Get current date in ISO8601 format [year-month-day] as string"""
+    """Get current date in ISO8601 format [year-month-day] (zero-padded) as string"""
     now = datetime.datetime.now(datetime.UTC)
-    return f"{now.year}-{now.month}-{now.day}"
+    return now.strftime("%Y-%m-%d")
 
 
 def iso_date_prefix(_, file_name_ext: str) -> str:
@@ -72,25 +72,23 @@ class MinioBackend(Storage):
         Through self._META_KWARGS, the "metadata", "sse" and "progress" fields can be set
         for the underlying put_object() MinIO SDK method
     """
-    DEFAULT_MEDIA_FILES_BUCKET = 'auto-generated-bucket-media-files'
-    DEFAULT_STATIC_FILES_BUCKET = 'auto-generated-bucket-static-files'
-    DEFAULT_PRIVATE_BUCKETS = [DEFAULT_MEDIA_FILES_BUCKET, DEFAULT_STATIC_FILES_BUCKET]
-    MINIO_MEDIA_FILES_BUCKET = get_setting("MINIO_MEDIA_FILES_BUCKET", default=DEFAULT_MEDIA_FILES_BUCKET)
-    MINIO_STATIC_FILES_BUCKET = get_setting("MINIO_STATIC_FILES_BUCKET", default=DEFAULT_STATIC_FILES_BUCKET)
+    DEFAULT_MEDIA_FILES_BUCKET = 'auto-generated-bucket-media-files'  # PRIVATE BY DEFAULT
 
     def __init__(self,
                  bucket_name: str = '',
+                 storage_name: str = 'default',
                  *args,
                  **kwargs):
+        if not storages.backends[storage_name].get("OPTIONS"):
+            raise ConfigurationError("OPTIONS not present in STORAGES in settings.py")
+        # received kwargs are preferred. missing keys are filled from storages.backends
+        kwargs = {**kwargs, **{k: v for k, v in storages.backends[storage_name]["OPTIONS"].items() if k not in kwargs}}
 
-        # If bucket_name is not provided, MinioBackend acts as a DEFAULT_FILE_STORAGE
-        # The automatically selected bucket is MINIO_MEDIA_FILES_BUCKET from settings.py
+        # If bucket_name is not provided, MinioBackend falls back to using DEFAULT_MEDIA_FILES_BUCKET
         # See https://docs.djangoproject.com/en/3.2/ref/settings/#default-file-storage
         if not bucket_name or bucket_name == '':
-            self.__CONFIGURED_AS_DEFAULT_STORAGE = True
-            self._BUCKET_NAME: str = self.MINIO_MEDIA_FILES_BUCKET
+            self._BUCKET_NAME: str = kwargs.get("MINIO_DEFAULT_BUCKET", self.DEFAULT_MEDIA_FILES_BUCKET)
         else:
-            self.__CONFIGURED_AS_DEFAULT_STORAGE = False
             self._BUCKET_NAME: str = bucket_name
 
         self._META_ARGS = args
@@ -100,67 +98,59 @@ class MinioBackend(Storage):
 
         self.__CLIENT: Union[minio.Minio, None] = None  # This client is used for internal communication only. Communication this way should not leave the host network's perimeter
         self.__CLIENT_EXT: Union[minio.Minio, None] = None  # This client is used for external communication. This client is necessary for creating region-aware pre-signed URLs
-        self.__MINIO_ENDPOINT: str = get_setting("MINIO_ENDPOINT", "")
-        self.__MINIO_EXTERNAL_ENDPOINT: str = get_setting("MINIO_EXTERNAL_ENDPOINT", self.__MINIO_ENDPOINT)
-        self.__MINIO_ACCESS_KEY: str = get_setting("MINIO_ACCESS_KEY")
-        self.__MINIO_SECRET_KEY: str = get_setting("MINIO_SECRET_KEY")
-        self.__MINIO_USE_HTTPS: bool = get_setting("MINIO_USE_HTTPS")
-        self.__MINIO_REGION: str = get_setting("MINIO_REGION", "us-east-1")  # MINIO defaults to "us-east-1" when region is set to None
-        self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = get_setting("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
-        self.__MINIO_BUCKET_CHECK_ON_SAVE: bool = get_setting("MINIO_BUCKET_CHECK_ON_SAVE", False)
-
-        self.__BASE_URL = ("https://" if self.__MINIO_USE_HTTPS else "http://") + self.__MINIO_ENDPOINT
-        self.__BASE_URL_EXTERNAL = ("https://" if self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS else "http://") + self.__MINIO_EXTERNAL_ENDPOINT
+        self.__MINIO_ENDPOINT: str = kwargs.get("MINIO_ENDPOINT", "")
+        self.__MINIO_EXTERNAL_ENDPOINT: str = kwargs.get("MINIO_EXTERNAL_ENDPOINT", self.__MINIO_ENDPOINT)
+        self.__MINIO_ACCESS_KEY: str = kwargs.get("MINIO_ACCESS_KEY")
+        self.__MINIO_SECRET_KEY: str = kwargs.get("MINIO_SECRET_KEY")
+        self.__MINIO_USE_HTTPS: bool = kwargs.get("MINIO_USE_HTTPS")
+        self.__MINIO_REGION: str = kwargs.get("MINIO_REGION", "us-east-1")  # MINIO defaults to "us-east-1" when region is set to None
+        self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: bool = kwargs.get("MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", self.__MINIO_USE_HTTPS)
+        self.__MINIO_BUCKET_CHECK_ON_SAVE: bool = kwargs.get("MINIO_BUCKET_CHECK_ON_SAVE", False)
+        self.__MINIO_URL_EXPIRY_HOURS = kwargs.get("MINIO_URL_EXPIRY_HOURS", datetime.timedelta(days=7))
+        self.__BASE_URL = f'{"https://" if self.__MINIO_USE_HTTPS else "http://"}{self.__MINIO_ENDPOINT}'
+        self.__BASE_URL_EXTERNAL = f'{"https://" if self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS else "http://"}{self.__MINIO_EXTERNAL_ENDPOINT}'
         self.__SAME_ENDPOINTS = self.__MINIO_ENDPOINT == self.__MINIO_EXTERNAL_ENDPOINT
 
-        self.PRIVATE_BUCKETS: List[str] = get_setting("MINIO_PRIVATE_BUCKETS", [])
-        self.PUBLIC_BUCKETS: List[str] = get_setting("MINIO_PUBLIC_BUCKETS", [])
+        self.PRIVATE_BUCKETS: List[str] = kwargs.get("MINIO_PRIVATE_BUCKETS", [])
+        self.PUBLIC_BUCKETS: List[str] = kwargs.get("MINIO_PUBLIC_BUCKETS", [])
+        if self.bucket == self.DEFAULT_MEDIA_FILES_BUCKET:
+            self.PRIVATE_BUCKETS.append(self.DEFAULT_MEDIA_FILES_BUCKET)
 
-        # Configure storage type
-        self.__STORAGE_TYPE = 'custom'
-        if self.bucket == self.MINIO_MEDIA_FILES_BUCKET:
-            self.__STORAGE_TYPE = 'media'
-        if self.bucket == self.MINIO_STATIC_FILES_BUCKET:
-            self.__STORAGE_TYPE = 'static'
-
-        # Enforce good bucket security (private vs public)
-        if (self.bucket in self.DEFAULT_PRIVATE_BUCKETS) and (self.bucket not in [*self.PRIVATE_BUCKETS, *self.PUBLIC_BUCKETS]):
-            self.PRIVATE_BUCKETS.extend(self.DEFAULT_PRIVATE_BUCKETS)  # policy for default buckets is PRIVATE
-        # Require custom buckets to be declared explicitly
         if self.bucket not in [*self.PRIVATE_BUCKETS, *self.PUBLIC_BUCKETS]:
-            raise ConfigurationError(f'The configured bucket ({self.bucket}) must be declared either in MINIO_PRIVATE_BUCKETS or MINIO_PUBLIC_BUCKETS')
+            logger.warning(f'Bucket ({self.bucket}) is not declared either in MINIO_PRIVATE_BUCKETS or '
+                           f'MINIO_PUBLIC_BUCKETS. Falling back to defaults treating bucket as PRIVATE.')
+            self.PRIVATE_BUCKETS.append(self.bucket)
 
         # https://docs.min.io/docs/python-client-api-reference.html
         http_client_from_kwargs = self._META_KWARGS.get("http_client", None)
-        http_client_from_settings = get_setting("MINIO_HTTP_CLIENT")
+        http_client_from_settings = kwargs.get("MINIO_HTTP_CLIENT")
         self.HTTP_CLIENT: urllib3.poolmanager.PoolManager = http_client_from_kwargs or http_client_from_settings
 
-        bucket_name_intersection: List[str] = list(set(self.PRIVATE_BUCKETS) & set(self.PUBLIC_BUCKETS))
-        if bucket_name_intersection:
+        if bucket_name_intersection := list(set(self.PRIVATE_BUCKETS) & set(self.PUBLIC_BUCKETS)):
             raise PrivatePublicMixedError(
                 f'One or more buckets have been declared both private and public: {bucket_name_intersection}'
             )
-
+        self.validate_settings()
     """
         django.core.files.storage.Storage
     """
 
     def _save(self, file_path_name: str, content: InMemoryUploadedFile) -> str:
         """
-        Saves file to Minio by implementing Minio.put_object()
+        Saves a file to Minio by implementing Minio.put_object()
         :param file_path_name (str): Path to file + file name + file extension | i.e.: images/2018-12-31/cat.png
         :param content (InMemoryUploadedFile): File object
         :return:
         """
         if self.__MINIO_BUCKET_CHECK_ON_SAVE:
-            # Create bucket if not exists
+            # Create a bucket if not exists
             self.check_bucket_existence()
 
-        # Check if object with name already exists; delete if so
+        # Check if an object with a name already exists; delete it if so
         try:
             if self._REPLACE_EXISTING and self.stat(file_path_name):
                 self.delete(file_path_name)
-        except AttributeError:
+        except (minio.error.S3Error, minio.error.ServerError, urllib3.exceptions.MaxRetryError, AttributeError):
             pass
 
         # Upload object
@@ -195,26 +185,25 @@ class MinioBackend(Storage):
         :param name (str): object_name [path to file excluding bucket name which is implied]
         :kwargs (dict): passed on to the underlying MinIO client's get_object() method
         """
-        resp: urllib3.response.HTTPResponse = urllib3.response.HTTPResponse()
 
         if mode != 'rb':
             raise ValueError('Files retrieved from MinIO are read-only. Use save() method to override contents')
+        resp: urllib3.response.HTTPResponse = self.client.get_object(self.bucket, object_name, **kwargs)
         try:
-            resp = self.client.get_object(self.bucket, object_name, **kwargs)
             file = S3File(file=io.BytesIO(resp.read()), name=object_name, storage=self)
+            return file
         finally:
             resp.close()
             resp.release_conn()
-        return file
 
-    def stat(self, name: str) -> Union[minio.datatypes.Object, bool]:
-        """Get object information and metadata of an object"""
-        object_name = Path(name).as_posix()
-        try:
-            obj = self.client.stat_object(self.bucket, object_name=object_name)
-            return obj
-        except (minio.error.S3Error, minio.error.ServerError, urllib3.exceptions.MaxRetryError):
-            raise AttributeError(f'Could not stat object ({name}) in bucket ({self.bucket})')
+    def stat(self, name: str) -> minio.datatypes.Object:
+        """
+        Get object information and metadata of an object
+        :raises minio.error.S3Error: If the object doesn't exist
+        :raises minio.error.ServerError: If the minio backend couldn't be reached
+        :raises urllib3.exceptions.MaxRetryError: If the minio backend request has timed out
+        """
+        return self.client.stat_object(self.bucket, object_name=Path(name).as_posix())
 
     def delete(self, name: str):
         """
@@ -228,35 +217,59 @@ class MinioBackend(Storage):
         self.client.remove_object(bucket_name=self.bucket, object_name=object_name)
 
     def exists(self, name: str) -> bool:
-        """Check if an object with name already exists"""
+        """Check if an object with the name already exists"""
         object_name = Path(name).as_posix()
         try:
             if self.stat(object_name):
                 return True
             return False
-        except AttributeError as e:
-            logger.info(e)
+        except (minio.error.S3Error, minio.error.ServerError, urllib3.exceptions.MaxRetryError, AttributeError) as e:
+            logger.info(msg=f"Object could not be found: {self.bucket}/{name}", exc_info=e)
             return False
 
-    def listdir(self, bucket_name: str):
-        """List all objects in a bucket"""
-        objects = self.client.list_objects(bucket_name=bucket_name, recursive=True)
-        return [(obj.object_name, obj) for obj in objects]
+    def listdir(self, path: str = '', **kwargs) -> Tuple[List[str], List[str]]:
+        """
+        List the contents of the specified path in the configured bucket.
+        Return a 2-tuple of lists: (directories, files).
+        This method sets the `recursive` kwarg to True by default.
+        The `prefix` key in kwargs will be ignored. Provide it through the `path` arg.
+        :kwargs: Passed on to the underlying MinIO client's list_objects() method
+        """
+        prefix = path.strip('/')
+        if prefix:
+            prefix += '/'
+        else:
+            prefix = ''
+        prefix_len = len(prefix)
+
+        # Always recursive to find everything under the prefix
+        kwargs.setdefault('recursive', True)
+
+        dirs = set()
+        files = []
+
+        objects = self.client.list_objects(bucket_name=self.bucket, prefix=prefix, **kwargs)
+        for obj in objects:
+            relpath = obj.object_name[prefix_len:]
+            if not relpath:
+                continue
+            if '/' in relpath:
+                subdir = relpath.split('/', 1)[0]
+                dirs.add(subdir)
+            else:
+                files.append(relpath)
+        return sorted(dirs), sorted(files)
 
     def size(self, name: str) -> int:
         """Get an object's size"""
-        object_name = Path(name).as_posix()
-        try:
-            obj = self.stat(object_name)
-            return obj.size if obj else 0
-        except AttributeError:
-            return 0
+        obj = self.stat(Path(name).as_posix())
+        return obj.size
 
     def url(self, name: str):
         """
         Returns url to object.
-        If bucket is public, direct link is provided.
-        if bucket is private, a pre-signed link is provided.
+        If the bucket is public, a direct link is provided.
+        If the bucket is private, a pre-signed link is provided.
         :param name: (str) file path + file name + suffix
         :return: (str) URL to object
         """
@@ -272,7 +285,7 @@ class MinioBackend(Storage):
             u: str = client.presigned_get_object(
                 bucket_name=self.bucket,
                 object_name=name,
-                expires=get_setting("MINIO_URL_EXPIRY_HOURS", datetime.timedelta(days=7))  # Default is 7 days
+                expires=self.__MINIO_URL_EXPIRY_HOURS,  # Default is 7 days
             )
             return u
         except urllib3.exceptions.MaxRetryError:
@@ -282,21 +295,21 @@ class MinioBackend(Storage):
         """The MinIO storage system doesn't support absolute paths"""
         raise NotImplementedError("The MinIO storage system doesn't support absolute paths.")
 
-    def get_accessed_time(self, name: str) -> datetime:
+    def get_accessed_time(self, name: str) -> datetime.datetime:
         """
         Return the last accessed time (as a datetime) of the file specified by
         name. The datetime will be timezone-aware if USE_TZ=True.
         """
         raise NotImplementedError('MinIO does not store last accessed time')
 
-    def get_created_time(self, name: str) -> datetime:
+    def get_created_time(self, name: str) -> datetime.datetime:
         """
         Return the creation time (as a datetime) of the file specified by name.
         The datetime will be timezone-aware if USE_TZ=True.
         """
         raise NotImplementedError('MinIO does not store creation time')
 
-    def get_modified_time(self, name: str) -> datetime:
+    def get_modified_time(self, name: str) -> datetime.datetime:
         """
         Return the last modified time (as a datetime) of the file specified by
         name. The datetime will be timezone-aware if USE_TZ=True.
@@ -384,23 +397,28 @@ class MinioBackend(Storage):
         Instantiates a new Minio client and assigns it to their respective class variable
         :param external: If True, the returned value is self.__CLIENT_EXT instead of self.__CLIENT
         """
-        self.__CLIENT = minio.Minio(
-            endpoint=self.__MINIO_ENDPOINT,
-            access_key=self.__MINIO_ACCESS_KEY,
-            secret_key=self.__MINIO_SECRET_KEY,
-            secure=self.__MINIO_USE_HTTPS,
-            http_client=self.HTTP_CLIENT,
-            region=self.__MINIO_REGION,
-        )
-        self.__CLIENT_EXT = minio.Minio(
-            endpoint=self.__MINIO_EXTERNAL_ENDPOINT,
-            access_key=self.__MINIO_ACCESS_KEY,
-            secret_key=self.__MINIO_SECRET_KEY,
-            secure=self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS,
-            http_client=self.HTTP_CLIENT,
-            region=self.__MINIO_REGION,
-        )
-        return self.__CLIENT_EXT if external else self.__CLIENT
+        if external:
+            if not self.__CLIENT_EXT:
+                self.__CLIENT_EXT = minio.Minio(
+                    endpoint=self.__MINIO_EXTERNAL_ENDPOINT,
+                    access_key=self.__MINIO_ACCESS_KEY,
+                    secret_key=self.__MINIO_SECRET_KEY,
+                    secure=self.__MINIO_EXTERNAL_ENDPOINT_USE_HTTPS,
+                    http_client=self.HTTP_CLIENT,
+                    region=self.__MINIO_REGION,
+                )
+            return self.__CLIENT_EXT
+        else:
+            if not self.__CLIENT:
+                self.__CLIENT = minio.Minio(
+                    endpoint=self.__MINIO_ENDPOINT,
+                    access_key=self.__MINIO_ACCESS_KEY,
+                    secret_key=self.__MINIO_SECRET_KEY,
+                    secure=self.__MINIO_USE_HTTPS,
+                    http_client=self.HTTP_CLIENT,
+                    region=self.__MINIO_REGION,
+                )
+            return self.__CLIENT
 
     # MAINTENANCE
     def check_bucket_existence(self):
@@ -408,11 +426,86 @@ class MinioBackend(Storage):
         if not self.client.bucket_exists(self.bucket):
             self.client.make_bucket(bucket_name=self.bucket)
 
-    def check_bucket_existences(self):  # Execute this handler upon starting Django to make sure buckets exist
-        """Check if all buckets configured in settings.py do exist. If not, create them"""
-        for bucket in [*self.PUBLIC_BUCKETS, *self.PRIVATE_BUCKETS]:
-            if not self.client.bucket_exists(bucket):
-                self.client.make_bucket(bucket_name=bucket)
+    def check_bucket_existences(self, max_workers: Optional[int] = None):
+        """
+        Check if all buckets configured in settings.py exist. Create them if they don't.
+
+        Args:
+            max_workers: Maximum number of concurrent workers.
+                        Defaults to min(bucket_count, 10)
+
+        Raises:
+            Exception: If any bucket check or creation fails
+        """
+        all_buckets = [*self.PUBLIC_BUCKETS, *self.PRIVATE_BUCKETS]
+
+        if not all_buckets:
+            logger.warning("No buckets configured")
+            return
+
+        # Calculate optimal worker count
+        if max_workers is None:
+            max_workers = min(len(all_buckets), 10)
+
+        def check_and_create_bucket(bucket: str) -> Tuple[str, bool, Optional[Exception]]:
+            """
+            Check and create a single bucket.
+
+            Returns:
+                Tuple of (bucket_name, already_existed, error)
+            """
+            try:
+                exists = self.client.bucket_exists(bucket)
+                if not exists:
+                    self.client.make_bucket(bucket_name=bucket)
+                    logger.info(f"Created bucket: {bucket}")
+                    return bucket, False, None
+                else:
+                    logger.debug(f"Bucket already exists: {bucket}")
+                    return bucket, True, None
+            except Exception as exc:
+                logger.error(f"Error checking/creating bucket {bucket}: {exc}", exc_info=True)
+                return bucket, False, exc
+
+        errors = []
+        created_count = 0
+        existing_count = 0
+
+        logger.info(f"Checking {len(all_buckets)} buckets with {max_workers} workers")
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all bucket checks
+            future_to_bucket = {
+                executor.submit(check_and_create_bucket, bucket): bucket
+                for bucket in all_buckets
+            }
+
+            # Process results as they complete
+            for future in as_completed(future_to_bucket):
+                bucket_name = future_to_bucket[future]
+                try:
+                    bucket, existed, error = future.result()
+                    if error:
+                        errors.append((bucket, error))
+                    elif existed:
+                        existing_count += 1
+                    else:
+                        created_count += 1
+                except Exception as e:
+                    # Catch any unexpected errors from the future itself
+                    logger.error(f"Unexpected error processing bucket {bucket_name}: {e}")
+                    errors.append((bucket_name, e))
+
+        # Summary logging
+        logger.info(
+            f"Bucket check complete: {existing_count} existed, "
+            f"{created_count} created, {len(errors)} errors"
+        )
+
+        # Raise if any errors occurred
+        if errors:
+            error_msg = "\n".join([f"  - {bucket}: {error}" for bucket, error in errors])
+            raise Exception(f"Failed to check/create {len(errors)} bucket(s):\n{error_msg}")
 
     def set_bucket_policy(self, bucket: str, policy: dict):
         """Set a custom bucket policy"""
@@ -453,7 +546,7 @@ class MinioBackend(Storage):
           * A mandatory parameter (MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY or MINIO_USE_HTTPS) hasn't been declared and configured properly
         """
         # minimum 1 bucket has to be declared
-        if not (get_setting("MINIO_PRIVATE_BUCKETS") or get_setting("MINIO_PUBLIC_BUCKETS")):
+        if not (self.PRIVATE_BUCKETS or self.PUBLIC_BUCKETS):
             raise ConfigurationError(
                 'Either '
                 'MINIO_PRIVATE_BUCKETS'
@@ -463,7 +556,7 @@ class MinioBackend(Storage):
             )
         # mandatory parameters must be configured
         mandatory_parameters = (self.__MINIO_ENDPOINT, self.__MINIO_ACCESS_KEY, self.__MINIO_SECRET_KEY)
-        if any([bool(x) is False for x in mandatory_parameters]) or (get_setting("MINIO_USE_HTTPS") is None):
+        if not all(mandatory_parameters):
             raise ConfigurationError(
                 "A mandatory parameter (MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY or MINIO_USE_HTTPS) hasn't been configured properly"
             )
@@ -477,10 +570,13 @@ class MinioBackendStatic(MinioBackend):
     :arg *args: Should not be used for static files. It's here for compatibility only
     :arg **kwargs: Should not be used for static files. It's here for compatibility only
     """
+    DEFAULT_STATIC_FILES_BUCKET = 'auto-generated-bucket-static-files'
+
     def __init__(self, *args, **kwargs):
-        super().__init__(self.MINIO_STATIC_FILES_BUCKET, *args, **kwargs)
-        self.check_bucket_existence()  # make sure the `MINIO_STATIC_FILES_BUCKET` exists
-        self.set_bucket_to_public()  # the static files bucket must be publicly available
+        static_files_bucket = kwargs.get("MINIO_STATIC_FILES_BUCKET", self.DEFAULT_STATIC_FILES_BUCKET)
+        logger.debug(f"MinioBackendStatic.static_files_bucket = {static_files_bucket}")
+        kwargs["MINIO_PUBLIC_BUCKETS"] = [static_files_bucket, ]  # hardcoded. static files must be public
+        super().__init__(bucket_name=static_files_bucket, storage_name="staticfiles", *args, **kwargs)
 
     def path(self, name):
         """The MinIO storage system doesn't support absolute paths"""

@@ -16,8 +16,9 @@ See [minio/minio-py](https://github.com/minio/minio-py) for the source.
 The following set of features are available in **django-minio-backend**:
 * Django File Storage System Integration
   * Compliance with the `django.core.files.storage.Storage` class
+  * Compliance with the `STORAGES` setting introduced in Django 4.2
   * Static Files Support
-* Utilise/manage private and public buckets
+* Utilise and manage private and public buckets
   * Create buckets with custom policy hooks (`MINIO_POLICY_HOOKS`)
   * Consistency Check on Start (`MINIO_CONSISTENCY_CHECK_ON_START`)
   * Bucket Check on Upload (`MINIO_BUCKET_CHECK_ON_SAVE`)
@@ -26,6 +27,9 @@ The following set of features are available in **django-minio-backend**:
 * Management Commands:
   * initialize_buckets
   * is_minio_available
+* Support for multiple MinIO backends via separate `settings.py` entries
+
+For more about `STORAGES`, see [Django 4.2 release notes / Custom file storages](https://docs.djangoproject.com/en/5.1/releases/4.2/#custom-file-storages).
 
 ## Integration
 1. Get and install the package:
@@ -33,64 +37,60 @@ The following set of features are available in **django-minio-backend**:
     pip install django-minio-backend
     ```
 
-2. Add `django_minio_backend` to `INSTALLED_APPS`:
-    ```python
-    INSTALLED_APPS = [
-        # '...'
-        'django_minio_backend',  # https://github.com/theriverman/django-minio-backend
-    ]
-    ```
-
-    If you would like to enable on-start consistency check, install via `DjangoMinioBackendConfig`:
+2. Add `django_minio_backend.apps.DjangoMinioBackendConfig` to `INSTALLED_APPS`:
     ```python
     INSTALLED_APPS = [
         # '...'
         'django_minio_backend.apps.DjangoMinioBackendConfig',  # https://github.com/theriverman/django-minio-backend
     ]
-    ``` 
-
-    Then add the following parameter to your settings file:
-    ```python
-    MINIO_CONSISTENCY_CHECK_ON_START = True
     ```
-
-    **Note:** The on-start consistency check equals to manually calling `python manage.py initialize_buckets`. <br>
-    It is recommended to turn *off* this feature during development by setting `MINIO_CONSISTENCY_CHECK_ON_START` to `False`, 
-    because this operation can noticeably slow down Django's boot time when many buckets are configured.
 
 3. Add the following parameters to your `settings.py`:
     ```python
     from datetime import timedelta
-    from typing import List, Tuple
     
-    STORAGES = {  # -- ADDED IN Django 5.1
+    STORAGES = {  # -- ADDED in Django 4.2
+        # "staticfiles": {  # <-- DEFAULT STATIC FILES STORAGE
+            # "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+            # Uncomment this storage to use Django's default static files storage
+            # and add STATIC_ROOT outside the STORAGES dict
+        # },
+        "staticfiles": {
+            "BACKEND": "django_minio_backend.models.MinioBackendStatic",
+            "OPTIONS": {
+                "MINIO_ENDPOINT": "play.min.io",
+                "MINIO_ACCESS_KEY": "Q3AM3UQ867SPQQA43P2F",
+                "MINIO_SECRET_KEY": "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
+                "MINIO_USE_HTTPS": True,
+                "MINIO_REGION": "us-east-1",
+                "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # Default is 7 days (longest) if not defined
+                "MINIO_CONSISTENCY_CHECK_ON_START": True,
+                "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket",
+            },
+        },
         "default": {
             "BACKEND": "django_minio_backend.models.MinioBackend",
+            "OPTIONS": {
+                "MINIO_ENDPOINT": "play.min.io",
+                "MINIO_EXTERNAL_ENDPOINT": "external.min.io",
+                "MINIO_EXTERNAL_ENDPOINT_USE_HTTPS": True,
+                "MINIO_ACCESS_KEY": "Q3AM3UQ867SPQQA43P2F",
+                "MINIO_SECRET_KEY": "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
+                "MINIO_USE_HTTPS": True,
+                "MINIO_REGION": "us-east-1",
+                "MINIO_PRIVATE_BUCKETS": ['django-backend-dev-private', 'my-media-files-bucket', ],
+                "MINIO_PUBLIC_BUCKETS": ['django-backend-dev-public', 't5p2g08k31', '7xi7lx9rjh' ],
+                "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # Default is 7 days (longest) if not defined
+                "MINIO_CONSISTENCY_CHECK_ON_START": False,
+                "MINIO_POLICY_HOOKS": [  # List[Tuple[str, dict]]
+                    # ('django-backend-dev-private', dummy_policy)
+                ],
+                "MINIO_DEFAULT_BUCKET": "my-media-files-bucket",
+                "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket",
+                "MINIO_BUCKET_CHECK_ON_SAVE": False,
+            },
         },
-        # "staticfiles": {  # -- OPTIONAL
-        #     "BACKEND": "django_minio_backend.models.MinioBackendStatic",
-        # },
     }
-    
-    MINIO_ENDPOINT = 'minio.your-company.co.uk'
-    MINIO_EXTERNAL_ENDPOINT = "external-minio.your-company.co.uk"  # Default is same as MINIO_ENDPOINT
-    MINIO_EXTERNAL_ENDPOINT_USE_HTTPS = True  # Default is same as MINIO_USE_HTTPS
-    MINIO_REGION = 'us-east-1'  # Default is set to None
-    MINIO_ACCESS_KEY = 'yourMinioAccessKey'
-    MINIO_SECRET_KEY = 'yourVeryS3cr3tP4ssw0rd'
-    MINIO_USE_HTTPS = True
-    MINIO_URL_EXPIRY_HOURS = timedelta(days=1)  # Default is 7 days (longest) if not defined
-    MINIO_CONSISTENCY_CHECK_ON_START = True
-    MINIO_PRIVATE_BUCKETS = [
-        'django-backend-dev-private',
-    ]
-    MINIO_PUBLIC_BUCKETS = [
-        'django-backend-dev-public',
-    ]
-    MINIO_POLICY_HOOKS: List[Tuple[str, dict]] = []
-    # MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for MEDIA_ROOT
-    # MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for STATIC_ROOT
-    MINIO_BUCKET_CHECK_ON_SAVE = True  # Default: True // Creates bucket if missing, then save
     
     # Custom HTTP Client (OPTIONAL)
     import os
@@ -98,7 +98,8 @@ The following set of features are available in **django-minio-backend**:
     import urllib3
     timeout = timedelta(minutes=5).seconds
     ca_certs = os.environ.get('SSL_CERT_FILE') or certifi.where()
-    MINIO_HTTP_CLIENT: urllib3.poolmanager.PoolManager = urllib3.PoolManager(
+    STORAGES["default"]["OPTIONS"]["MINIO_HTTP_CLIENT"]: urllib3.poolmanager.PoolManager
+    STORAGES["default"]["OPTIONS"]["MINIO_HTTP_CLIENT"] = urllib3.PoolManager(
         timeout=urllib3.util.Timeout(connect=timeout, read=timeout),
         maxsize=10,
         cert_reqs='CERT_REQUIRED',
@@ -111,18 +112,38 @@ The following set of features are available in **django-minio-backend**:
     )
     ```
 
-4. Implement your own Attachment handler and integrate **django-minio-backend**:
+4. Implement your own lazy-loaded Attachment handler and integrate **django-minio-backend**:
     ```python
+    # storages.py
+    from django_minio_backend.models import MinioBackend
+
+    def get_public_storage():
+        return MinioBackend(
+            bucket_name='django-backend-dev-public',
+            storage_name='default',
+        )
+    
+    def get_private_storage():
+        return MinioBackend(
+            bucket_name='django-backend-dev-private',
+            storage_name='default',
+        )
+    ```
+   
+    ```python
+    # models.py
     from django.db import models
     from django_minio_backend import MinioBackend, iso_date_prefix
+    from .storages import get_public_storage, get_private_storage
     
     class PrivateAttachment(models.Model):   
-        file = models.FileField(verbose_name="Object Upload",
-                                storage=MinioBackend(bucket_name='django-backend-dev-private'),
-                                upload_to=iso_date_prefix)
+        file: FieldFile = models.FileField(verbose_name="Object Upload",
+                                           storage=get_private_storage, upload_to=set_file_path_name)
     ```
+    **Note:** It is highly recommended to declare your `MinioBackend` class instances in a callable function to avoid
+    future Django migration problems due to Django's model serialisation.
 
-5. Initialize the buckets & set their public policy (OPTIONAL):<br>
+5. Initialise the buckets & set their public policy (OPTIONAL):<br>
 This `django-admin` command creates both the private and public buckets in case one of them does not exist,
 and sets the *public* bucket's privacy policy from `private`(default) to `public`.<br>
     ```bash
@@ -143,46 +164,52 @@ STORAGES = {  # -- ADDED IN Django 5.1
     },
     "staticfiles": {  # -- ADD THESE LINES FOR STATIC FILES SUPPORT
         "BACKEND": "django_minio_backend.models.MinioBackendStatic",
+        "OPTIONS": {
+            "MINIO_ENDPOINT": "play.min.io",  # ONLY EXTERNAL ADDRESS FOR STATIC
+            "MINIO_ACCESS_KEY": "Q3AM3UQ867SPQQA43P2F",
+            "MINIO_SECRET_KEY": "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
+            "MINIO_USE_HTTPS": False,
+            "MINIO_REGION": "us-east-1",
+            "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # Default is 7 days (longest) if not defined
+            "MINIO_CONSISTENCY_CHECK_ON_START": True,
+            "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket",
+        },
     },
 }
-MINIO_STATIC_FILES_BUCKET = 'my-static-files-bucket'  # replacement for STATIC_ROOT
-# Add the value of MINIO_STATIC_FILES_BUCKET to one of the pre-configured bucket lists. e.g.:
-# MINIO_PRIVATE_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
-# MINIO_PUBLIC_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
 ```
-
 The value of `STATIC_URL` is ignored, but it must be defined otherwise Django will throw an error.
 
 **IMPORTANT**<br>
-The value set in `MINIO_STATIC_FILES_BUCKET` must be added either to `MINIO_PRIVATE_BUCKETS` or `MINIO_PUBLIC_BUCKETS`,
-otherwise **django-minio-backend** will raise an exception. This setting determines the privacy of generated file URLs which can be unsigned public or signed private.  
+The bucket configured in `MINIO_STATIC_FILES_BUCKET` is forced to be public to avoid known Django errors. It is not supported to serve Django static files from a private bucket. 
 
-**Note:** If `MINIO_STATIC_FILES_BUCKET` is not set, the default value (`auto-generated-bucket-static-files`) will be used. Policy setting for default buckets is **private**.
+**Note:** If `MINIO_STATIC_FILES_BUCKET` is not set, the default value (`auto-generated-bucket-static-files`) will be used.
 
 ### Default File Storage Support
 **django-minio-backend** can be configured as a default file storage.
 To learn more, see [STORAGES](https://docs.djangoproject.com/en/5.1/ref/settings/#std-setting-STORAGES).
 
-To configure **django-minio-backend** as the default file storage, update your `settings.py`:
+To configure **django-minio-backend** as the default file storage, update `settings.py` with `MINIO_DEFAULT_BUCKET`:
 ```python
 STORAGES = {  # -- ADDED IN Django 5.1
     "default": {
         "BACKEND": "django_minio_backend.models.MinioBackend",
-    }
+        "OPTIONS": {
+            # ...
+            "MINIO_DEFAULT_BUCKET": "django-minio-backend-default-dev-bucket",  # PRIVATE by default if not declared below
+            "MINIO_PRIVATE_BUCKETS": [ ],
+            "MINIO_PUBLIC_BUCKETS": ['django-minio-backend-default-dev-bucket'],
+            # ...
+        },
+    },
 }
-MINIO_MEDIA_FILES_BUCKET = 'my-media-files-bucket'  # replacement for MEDIA_ROOT
-# Add the value of MINIO_STATIC_FILES_BUCKET to one of the pre-configured bucket lists. e.g.:
-# MINIO_PRIVATE_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
-# MINIO_PUBLIC_BUCKETS.append(MINIO_STATIC_FILES_BUCKET)
 ```
 
-The value of `MEDIA_URL` is ignored, but it must be defined otherwise Django will throw an error.
-
 **IMPORTANT**<br>
-The value set in `MINIO_MEDIA_FILES_BUCKET` must be added either to `MINIO_PRIVATE_BUCKETS` or `MINIO_PUBLIC_BUCKETS`,
-otherwise **django-minio-backend** will raise an exception. This setting determines the privacy of generated file URLs which can be unsigned public or signed private.
+The value set in `MINIO_DEFAULT_BUCKET` can be added either to `MINIO_PRIVATE_BUCKETS` or `MINIO_PUBLIC_BUCKETS`.
+By default, **django-minio-backend** will register `MINIO_DEFAULT_BUCKET` as private.
 
-**Note:** If `MINIO_MEDIA_FILES_BUCKET` is not set, the default value (`auto-generated-bucket-media-files`) will be used. Policy setting for default buckets is **private**.
+**Note:** If `MINIO_DEFAULT_BUCKET` is not set, the default value (`auto-generated-bucket-media-files`) will be used.
+Policy setting for default buckets is **private**.
 
 ### Health Check
 To check the connection link between Django and MinIO, use the provided `MinioBackend.is_minio_available()` method.<br>
@@ -192,7 +219,7 @@ It returns a `MinioServerStatus` instance which can be quickly evaluated as bool
 ```python
 from django_minio_backend import MinioBackend
 
-minio_available = MinioBackend().is_minio_available()  # An empty string is fine this time
+minio_available = MinioBackend().is_minio_available()  # The bucket_name parameter can be empty for this check
 if minio_available:
     print("OK")
 else:
@@ -211,29 +238,39 @@ of [examples/policy_hook.example.py](examples/policy_hook.example.py).
 
 ### Consistency Check On Start
 When enabled, the `initialize_buckets` management command gets called automatically when Django starts. <br>
-This command connects to the configured MinIO server and checks if all buckets defined in `settings.py`. <br>
+This command connects to the configured MinIO server and checks if all buckets defined in `settings.py` are present. <br>
 In case a bucket is missing or its configuration differs, it gets created and corrected.
+
+**Note:** The on-start consistency check equals to manually calling `python manage.py initialize_buckets`. <br>
+It is recommended to turn *off* this feature during development by setting `MINIO_CONSISTENCY_CHECK_ON_START` to `False`, 
+because this operation can noticeably slow down Django's boot time when many buckets are configured.
 
 ### Reference Implementation
 For a reference implementation, see [Examples](examples).
 
 ## Behaviour
 The following list summarises the key characteristics of **django-minio-backend**:
-  * Bucket existence is **not** checked on a save by default.
+  * The STORAGES setting introduced in Django 4.2 enables configuring multiple storage backends with great customisation.
+    * MEDIA and STATIC files must be configured separately and the latter must be named `staticfiles` explicitly.
+    * STATIC files are stored in a single bucket managed via `MINIO_STATIC_FILES_BUCKET`.
+    * STATIC files are **public** by default and must remain public to avoid certain Django admin errors.
+    * The value of `MEDIA_URL` is ignored, but it must be defined otherwise Django will throw an error.
+  * If you're serving static files with the default backend, add `STATIC_ROOT` outside `STORAGES` in your settings.
+  * A bucket's existence is **not** checked on a save by default.
     To enable this guard, set `MINIO_BUCKET_CHECK_ON_SAVE = True` in your `settings.py`.
-  * Bucket existences are **not** checked on Django start by default.
+  * Bucket existence is **not** checked on Django start by default.
     To enable this guard, set `MINIO_CONSISTENCY_CHECK_ON_START = True` in your `settings.py`.
   * Many configuration errors are validated through `AppConfig` but not every error can be captured there.
-  * Files with the same name in the same bucket are **not** replaced on save by default. Django will store the newer file with an altered file name
+  * Files with the same name in the same bucket are **not** replaced on save by default. Django will store the newer file with an altered file name.
     To allow replacing existing files, pass the `replace_existing=True` kwarg to `MinioBackend`.
     For example:
     ```python
-    image = models.ImageField(storage=MinioBackend(bucket_name='images-public', replace_existing=True))
+    image = models.ImageField(storage=storages.get_private_images_storage())
     ```
-  * Depending on your configuration, **django-minio-backend** may communicate over two kind of interfaces: internal and external.
+  * Depending on your configuration, **django-minio-backend** may communicate over two kinds of interfaces: internal and external.
     If your `settings.py` defines a different value for `MINIO_ENDPOINT` and `MINIO_EXTERNAL_ENDPOINT`, then the former will be used for internal communication
     between Django and MinIO, and the latter for generating URLs for users. This behaviour optimises the network communication.
-    See **Networking** below for a thorough explanation
+    See **Networking** below for a thorough explanation.
   * The uploaded object's content-type is guessed during save. If `mimetypes.guess_type` fails to determine the correct content-type, then it falls back to `application/octet-stream`.
 
 ## Networking and Docker

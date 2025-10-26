@@ -4,32 +4,50 @@ on:
   push:
     branches:
       - '**'
+  pull_request:
+  workflow_dispatch:
 
 jobs:
-  job-run-django-app-tests:
-    name: Deploy DjangoExampleProject and run its integrated tests
+  test:
+    name: Python ${{ matrix.python-version }} / Django ${{ matrix.django-version }}
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12', '3.13', '3.14']
+        django-version: ['4.2', '5.0', '5.1', '5.2']
+
     steps:
-      # Checkout the repository
-      - uses: actions/checkout@v2
-      # Start the minIO container
-      - name: Start the minIO container
-        run: docker run --name miniotest -p 9000:9000 -d minio/minio server /data
-      # Setup Python
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v1
+      - uses: actions/checkout@v4
+
+      - name: Start MinIO
+        run: |
+          docker run -d -p 9000:9000 \
+            --name minio \
+            -e "MINIO_ROOT_USER=minioadmin" \
+            -e "MINIO_ROOT_PASSWORD=minioadmin" \
+            minio/minio server /data --console-address ":9001"
+          
+          # Wait for MinIO to be ready
+          timeout 30 bash -c 'until curl -f http://localhost:9000/minio/health/live; do sleep 1; done'
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.12
-      # Install Dependencies
-      - name: Install pypa/build
-        run: >-
-          python -m
-          pip install
-          -r
-          requirements.txt
-      # Setup Django
-      - name: Deploy DjangoExampleProject
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: |
+          uv pip install --system Django~=${{ matrix.django-version }}
+          uv pip install --system -r requirements.txt
+
+      - name: Run migrations
         run: python manage.py migrate
-      # Run Django Tests
-      - name: Run Django unit tests
+
+      - name: Run tests
         run: python manage.py test

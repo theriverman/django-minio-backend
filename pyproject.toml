@@ -1,0 +1,54 @@
+[project]
+name = "django-minio-backend"
+dynamic = ["version"]
+description = "The django-minio-backend provides a wrapper around the MinIO Python Library."
+authors = [
+    { name = "Kristof Daja (theriverman)", email = "22156894+theriverman@users.noreply.github.com" }
+]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = [
+    "Django>=4.2",
+    "minio>=7.2",
+    "Pillow>=10.0.0",  # Required for example application
+]
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
+    "Framework :: Django :: 5.2",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: Content Management System",
+    "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
+]
+
+[project.urls]
+Homepage = "https://github.com/theriverman/django-minio-backend"
+Repository = "https://github.com/theriverman/django-minio-backend"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/django_minio_backend",
+    "/README.md",
+]
+
+[tool.uv]
+dev-dependencies = []
