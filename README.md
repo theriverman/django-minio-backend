@@ -31,6 +31,9 @@ The following set of features are available in **django-minio-backend**:
 
 For more about `STORAGES`, see [Django 4.2 release notes / Custom file storages](https://docs.djangoproject.com/en/5.1/releases/4.2/#custom-file-storages).
 
+## Migrating from v3.x to v4.0.0+
+If your project is using an older version (<4.0.0) of **django-minio-backend**, see [MIGRATIONS.md](MIGRATIONS.md). 
+
 ## Integration
 1. Get and install the package:
     ```bash
