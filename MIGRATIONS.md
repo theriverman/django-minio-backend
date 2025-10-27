@@ -2,7 +2,18 @@
 
 Learn how to migrate your existing Django project utilising **django-minio-backend** from an older version to the latest release.
 
-## Migrating from v3.x to v4.0.0+
+## Migrating from 3.x to v4.1.0+
+Added support for multipart uploads. A fix for [Uploading large files consumes a lot of memory #50](https://github.com/theriverman/django-minio-backend/issues/50).
+
+### User-Facing Changes
+Three new **optional** parameters have been added to `django_minio_backend.models.MinioBackend`:
+* `MINIO_MULTIPART_UPLOAD`  # default: False
+* `MINIO_MULTIPART_THRESHOLD`  # default: 10MB
+* `MINIO_MULTIPART_PART_SIZE`  # default: 10MB
+
+See [settings.py](DjangoExampleProject/settings.py) for a reference implementation.
+
+## Migrating from 3.x to v4.0.0+
 
 [Django 5.1](https://docs.djangoproject.com/en/5.1/releases/5.1/#file-storage) introduced a breaking change:
 > The `DEFAULT_FILE_STORAGE` and `STATICFILES_STORAGE` settings have been removed.

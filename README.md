@@ -91,6 +91,10 @@ If your project is using an older version (<4.0.0) of **django-minio-backend**, 
                 "MINIO_DEFAULT_BUCKET": "my-media-files-bucket",
                 "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket",
                 "MINIO_BUCKET_CHECK_ON_SAVE": False,
+                # OPTIONAL
+                "MINIO_MULTIPART_UPLOAD": False,  # False by default
+                "MINIO_MULTIPART_THRESHOLD": 10 * 1024 * 1024,  # 10MB default
+                "MINIO_MULTIPART_PART_SIZE": 10 * 1024 * 1024,  # 10MB default
             },
         },
     }

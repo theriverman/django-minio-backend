@@ -130,6 +130,12 @@ class MinioBackend(Storage):
             raise PrivatePublicMixedError(
                 f'One or more buckets have been declared both private and public: {bucket_name_intersection}'
             )
+
+        # Multipart upload configuration
+        self.__MINIO_MULTIPART_UPLOAD: bool = kwargs.get('MINIO_MULTIPART_UPLOAD', False)
+        self.__MINIO_MULTIPART_THRESHOLD: int = kwargs.get('MINIO_MULTIPART_THRESHOLD', 10 * 1024 * 1024)  # 10MB default
+        self.__MINIO_MULTIPART_PART_SIZE: int = kwargs.get('MINIO_MULTIPART_PART_SIZE', 10 * 1024 * 1024)  # 10MB default
+
         self.validate_settings()
     """
         django.core.files.storage.Storage
@@ -155,19 +161,43 @@ class MinioBackend(Storage):
 
         # Upload object
         file_path: Path = Path(file_path_name)  # app name + file.suffix
-        content_bytes: io.BytesIO = io.BytesIO(content.read())
-        content_length: int = len(content_bytes.getvalue())
 
-        self.client.put_object(
-            bucket_name=self.bucket,
-            object_name=file_path.as_posix(),
-            data=content_bytes,
-            length=content_length,
-            content_type=self._guess_content_type(file_path_name, content),
-            metadata=self._META_KWARGS.get('metadata', None),
-            sse=self._META_KWARGS.get('sse', None),
-            progress=self._META_KWARGS.get('progress', None),
-        )
+        # Determine file size
+        content.seek(0, 2)  # Seek to end
+        file_size = content.tell()
+        content.seek(0)  # Reset to beginning
+
+        # Decide whether to use multipart upload
+        use_multipart = self.__MINIO_MULTIPART_UPLOAD and file_size >= self.__MINIO_MULTIPART_THRESHOLD
+
+        if use_multipart:
+            # Use multipart upload for large files
+            self.client.put_object(
+                bucket_name=self.bucket,
+                object_name=file_path.as_posix(),
+                data=content,
+                length=-1,
+                part_size=self.__MINIO_MULTIPART_PART_SIZE,
+                content_type=self._guess_content_type(file_path_name, content),
+                metadata=self._META_KWARGS.get('metadata', None),
+                sse=self._META_KWARGS.get('sse', None),
+                progress=self._META_KWARGS.get('progress', None),
+            )
+        else:
+            # Traditional upload - read entire file into memory
+            content_bytes: io.BytesIO = io.BytesIO(content.read())
+            content_length: int = len(content_bytes.getvalue())
+
+            self.client.put_object(
+                bucket_name=self.bucket,
+                object_name=file_path.as_posix(),
+                data=content_bytes,
+                length=content_length,
+                content_type=self._guess_content_type(file_path_name, content),
+                metadata=self._META_KWARGS.get('metadata', None),
+                sse=self._META_KWARGS.get('sse', None),
+                progress=self._META_KWARGS.get('progress', None),
+            )
         return file_path.as_posix()
 
     def get_available_name(self, name, max_length=None):

@@ -183,6 +183,10 @@ STORAGES = {  # -- ADDED IN Django 5.1
             "MINIO_POLICY_HOOKS": [  # List[Tuple[str, dict]]  # OPTIONAL
                 # ('django-backend-dev-private', dummy_policy)
             ],
+            # OPTIONAL
+            "MINIO_MULTIPART_UPLOAD": True,
+            "MINIO_MULTIPART_THRESHOLD": 10 * 1024 * 1024,  # 10MB default
+            "MINIO_MULTIPART_PART_SIZE": 10 * 1024 * 1024,  # 10MB default
         },
     },
 }
