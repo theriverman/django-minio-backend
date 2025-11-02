@@ -47,5 +47,6 @@ source = "vcs"
 [tool.hatch.build.targets.sdist]
 include = [
     "/django_minio_backend",
-    "/README.md",
+    "/LICENSE",
+    "/README*.md",
 ]
