@@ -21,6 +21,7 @@ pip install uv
 ```
 
 ### Super Quick Setup (Recommended)
+
 Get [make](https://www.gnu.org/software/make/) for your OS:
 * [Linux](https://www.gnu.org/distros/distros.html)
 * [macOS](https://formulae.brew.sh/formula/make)
@@ -37,6 +38,7 @@ Should you make changes to the models, you can execute `makemigrations` then `mi
 See [CONTRIBUTE.Docker.md](./CONTRIBUTE.Docker.md).
 
 ### Quick Setup with Local Deployment
+
 Execute the following steps:
 
 ```bash
@@ -90,14 +92,15 @@ python manage.py runserver
 
 ## Testing
 
+Testing happens against a real MinIO server.
+If you're running the tests locally, make sure you have a MinIO server running available at `127.0.0.1:9000`.
+See [MinIO Setup](#MinIO-Setup) for more details.
+
 Run the test suite with:
 
 ```bash
 # With uv
 uv run python manage.py test
-
-# Or if you activated the virtual environment
-python manage.py test
 ```
 
 **Note:** Tests are quite minimal at the moment. Contributions to improve test coverage are welcome!
@@ -123,7 +126,7 @@ docker run -p 9000:9000 -d \
 
 ## Code Style
 
-Please follow PEP 8 guidelines and ensure your code is well-documented.
+Please follow [PEP 8](https://peps.python.org/pep-0008/) guidelines and ensure your code is well-documented.
 
 ## Questions?
 

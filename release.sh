@@ -34,5 +34,5 @@ esac
 git tag -a "$NEW_VERSION" -m "$NEW_VERSION"
 git push --tags
 
-uv pip compile pyproject.toml -o requirements.txt
+(uv pip compile pyproject.toml -o requirements.txt > /dev/null 2>&1)
 gh release create "$NEW_VERSION" --generate-notes --title "Release $NEW_VERSION"
