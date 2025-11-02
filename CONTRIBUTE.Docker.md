@@ -31,5 +31,5 @@ Open your browser at http://localhost:8000/admin to access the Django admin port
 
 ## MinIO Console
 Open your browser at http://localhost:9001 to access the MiniIO Console:
-  * username: `minio`
-  * password: `minio123`
+  * username: `minioadmin`
+  * password: `minioadmin`

@@ -12,8 +12,8 @@ x-minio-common: &minio-common
     - "9000"
     - "9001"
   environment:
-    MINIO_ROOT_USER: minio
-    MINIO_ROOT_PASSWORD: minio123
+    MINIO_ROOT_USER: minioadmin
+    MINIO_ROOT_PASSWORD: minioadmin
     MINIO_DEFAULT_BUCKETS: default_bucket
   healthcheck:
     test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
@@ -41,8 +41,8 @@ services:
       GH_MINIO_USE_HTTPS: "false"
       GH_MINIO_EXTERNAL_ENDPOINT: "localhost:9000"
       GH_MINIO_EXTERNAL_ENDPOINT_USE_HTTPS: "false"
-      GH_MINIO_ACCESS_KEY: "minio"
-      GH_MINIO_SECRET_KEY: "minio123"
+      GH_MINIO_ACCESS_KEY: "minioadmin"
+      GH_MINIO_SECRET_KEY: "minioadmin"
       # CREATE AN ADMIN ACCOUNT FOR INTERNAL DEMO PURPOSES ONLY!
       DJANGO_SUPERUSER_USERNAME: "admin"
       DJANGO_SUPERUSER_PASSWORD: "123123"
