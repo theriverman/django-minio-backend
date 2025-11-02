@@ -2,6 +2,7 @@ import time
 from pathlib import Path
 from django.conf import settings
 from django.core.files import File
+from django.core.management import call_command
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django.core.validators import URLValidator
@@ -17,6 +18,8 @@ class ImageTestCase(TestCase):
     obj: Image = None
 
     def setUp(self):
+        # Initialise buckets
+        call_command('initialize_buckets', silenced=True)
         # Open a test file from disk and upload to minIO as an image
         with open(test_file_path, 'rb') as f:
             self.obj = Image.objects.create()
@@ -41,6 +44,9 @@ class PublicAttachmentTestCase(TestCase):
     filename = f'public_audience-868074_1920_{int(time.time())}.jpg'  # adding unix time makes our filename unique
 
     def setUp(self):
+        # Initialise buckets
+        call_command('initialize_buckets', silenced=True)
+
         ct = ContentType.objects.get(app_label='auth', model='user')  # PublicAttachment is generic so this is needed
         with open(test_file_path, 'rb') as f:
             # noinspection PyUnresolvedReferences
@@ -67,6 +73,9 @@ class PrivateAttachmentTestCase(TestCase):
     filename = f'private_audience-868074_1920_{int(time.time())}.jpg'  # adding unix time makes our filename unique
 
     def setUp(self):
+        # Initialise buckets
+        call_command('initialize_buckets', silenced=True)
+
         ct = ContentType.objects.get(app_label='auth', model='user')  # PrivateAttachment is generic so this is needed
         with open(test_file_path, 'rb') as f:
             # noinspection PyUnresolvedReferences
