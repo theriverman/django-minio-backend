@@ -20,9 +20,24 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 pip install uv
 ```
 
-### Quick Setup (Recommended)
+### Super Quick Setup (Recommended)
+Get [make](https://www.gnu.org/software/make/) for your OS:
+* [Linux](https://www.gnu.org/distros/distros.html)
+* [macOS](https://formulae.brew.sh/formula/make)
+* [Windows](https://gnuwin32.sourceforge.net/packages/make.htm)
 
-The fastest way to get started:
+Choose between deploying locally or with Docker Compose:
+* `make local`    - uses the public play.min.io instance
+* `make compose`  - uses a locally deployed MinIO stack
+
+Should you make changes to the models, you can execute `makemigrations` then `migrate` in a single step:
+* `make migrations`
+
+## Quick Setup with Docker Compose
+See [CONTRIBUTE.Docker.md](./CONTRIBUTE.Docker.md).
+
+### Quick Setup with Local Deployment
+Execute the following steps:
 
 ```bash
 # Clone the repository

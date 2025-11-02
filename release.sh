@@ -20,4 +20,5 @@ case $choice in
     *) echo "Invalid"; exit 1;;
 esac
 
+uv pip compile pyproject.toml -o requirements.txt
 gh release create "$NEW_VERSION" --generate-notes --title "Release $NEW_VERSION"
