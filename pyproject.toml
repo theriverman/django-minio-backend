@@ -49,6 +49,3 @@ include = [
     "/django_minio_backend",
     "/README.md",
 ]
-
-[tool.uv]
-dev-dependencies = []

@@ -50,6 +50,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'DjangoExampleApplication.middleware.HealthCheckMiddleware',
 ]
 
 ROOT_URLCONF = 'DjangoExampleProject.urls'
@@ -147,23 +148,25 @@ dummy_policy = {"Version": "2012-10-17",
                ]}
 
 STORAGES = {  # -- ADDED IN Django 5.1
-    "staticfiles": {  # <-- DEFAULT STATIC FILES STORAGE DISABLED
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        # Add STATIC_ROOT outside STORAGES too
-    },
-    # "staticfiles": {
-    #     "BACKEND": "django_minio_backend.models.MinioBackendStatic",
-    #     "OPTIONS": {
-    #         "MINIO_ENDPOINT": os.getenv("GH_MINIO_ENDPOINT", "play.min.io"),  # NO EXTERNAL ENDPOINT FOR STATIC FILES
-    #         "MINIO_ACCESS_KEY": os.getenv("GH_MINIO_ACCESS_KEY", "Q3AM3UQ867SPQQA43P2F"),
-    #         "MINIO_SECRET_KEY": os.getenv("GH_MINIO_SECRET_KEY", "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"),
-    #         "MINIO_USE_HTTPS": bool(distutils.util.strtobool(os.getenv("GH_MINIO_USE_HTTPS", "true"))),
-    #         "MINIO_REGION": os.getenv("GH_MINIO_REGION", "us-east-1"),  # OPTIONAL
-    #         "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # OPTIONAL. Default is 7 days (longest) if not defined
-    #         "MINIO_CONSISTENCY_CHECK_ON_START": True,  # OPTIONAL.
-    #         "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket",  # OPTIONAL. Default = auto-generated-bucket-static-files
-    #     },
+    # "staticfiles": {  # <-- DEFAULT STATIC FILES STORAGE DISABLED
+    #     "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        # Add STATIC_ROOT outside STORAGES too when running with DEBUG=False
     # },
+    "staticfiles": {
+        "BACKEND": "django_minio_backend.models.MinioBackendStatic",
+        "OPTIONS": {
+            "MINIO_ENDPOINT": os.getenv("GH_MINIO_ENDPOINT", "localhost:9000"),
+            "MINIO_EXTERNAL_ENDPOINT": os.getenv("GH_MINIO_EXTERNAL_ENDPOINT", "localhost:9000"),  # needed for Docker
+            "MINIO_EXTERNAL_ENDPOINT_USE_HTTPS": strtobool(os.getenv("GH_MINIO_EXTERNAL_ENDPOINT_USE_HTTPS", "false")),  # needed for Docker
+            "MINIO_ACCESS_KEY": os.getenv("GH_MINIO_ACCESS_KEY", "minioadmin"),
+            "MINIO_SECRET_KEY": os.getenv("GH_MINIO_SECRET_KEY", "minioadmin"),
+            "MINIO_USE_HTTPS": strtobool(os.getenv("GH_MINIO_USE_HTTPS", "false")),
+            "MINIO_REGION": os.getenv("GH_MINIO_REGION", "us-east-1"),  # OPTIONAL
+            "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # OPTIONAL. Default is 7 days (longest) if not defined
+            "MINIO_CONSISTENCY_CHECK_ON_START": False,  # OPTIONAL.
+            "MINIO_STATIC_FILES_BUCKET": "my-static-files-bucket",  # OPTIONAL. Default = auto-generated-bucket-static-files
+        },
+    },
     "default": {
         "BACKEND": "django_minio_backend.models.MinioBackend",
         "OPTIONS": {
@@ -178,7 +181,7 @@ STORAGES = {  # -- ADDED IN Django 5.1
             "MINIO_PRIVATE_BUCKETS": ['django-backend-dev-private', 'my-media-files-bucket', ],  # OPTIONAL
             "MINIO_PUBLIC_BUCKETS": ['django-backend-dev-public', 't5p2g08k31', '7xi7lx9rjh'],  # OPTIONAL
             "MINIO_URL_EXPIRY_HOURS": timedelta(days=1),  # OPTIONAL. Default is 7 days (longest) if not defined
-            "MINIO_CONSISTENCY_CHECK_ON_START": True,  # OPTIONAL.
+            "MINIO_CONSISTENCY_CHECK_ON_START": False,  # OPTIONAL.
             "MINIO_BUCKET_CHECK_ON_SAVE": False,  # OPTIONAL.
             "MINIO_POLICY_HOOKS": [  # List[Tuple[str, dict]]  # OPTIONAL
                 # ('django-backend-dev-private', dummy_policy)

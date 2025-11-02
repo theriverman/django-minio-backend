@@ -1,12 +1,12 @@
 # Docker Compose Description for django-minio-backend
-Execute the following step to start a demo environment using Docker Compose:
+Execute the following steps to start a demo or development environment using Docker Compose:
 
 **Start the Docker Compose services:**
- ```shell
+```shell
 docker compose up -d
-docker compose exec web python manage.py createsuperuser --noinput
-docker compose exec web python manage.py collectstatic --noinput
- ```
+docker compose exec web uv run manage.py initialize_buckets  # creates the MINIO_STATIC_FILES_BUCKET
+docker compose exec web uv run manage.py collectstatic --noinput  # copies static files into MINIO_STATIC_FILES_BUCKET
+```
 
 ## About docker-compose.yml
 Note the following lines in `docker-compose.yml`:
@@ -33,14 +33,3 @@ Open your browser at http://localhost:8000/admin to access the Django admin port
 Open your browser at http://localhost:9001 to access the MiniIO Console:
   * username: `minio`
   * password: `minio123`
-
-# Developer Environment
-An alternative docker-compose file is available for **django-minio-backend** which does not copy the source files into the container, but maps them as a volume.
-**Input file**: `docker-compose.develop.yml`
-
-If you would like to develop in a Docker Compose environment, execute the following commands:
-```shell
-docker compose -f docker-compose.develop.yml up -d
-docker compose -f docker-compose.develop.yml exec web python manage.py createsuperuser --noinput
-docker compose -f docker-compose.develop.yml exec web python manage.py collectstatic --noinput
-```

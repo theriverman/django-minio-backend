@@ -167,9 +167,6 @@ requires-dist = [
     { name = "pillow", specifier = ">=10.0.0" },
 ]
 
-[package.metadata.requires-dev]
-dev = []
-
 [[package]]
 name = "minio"
 version = "7.2.18"

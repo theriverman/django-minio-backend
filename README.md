@@ -290,10 +290,10 @@ and **django-minio-backend** will default to the value of `MINIO_ENDPOINT`.
 Setting up and configuring custom networks in Docker is not in the scope of this document. <br>
 To learn more about Docker networking, see [Networking overview](https://docs.docker.com/network/) and [Networking in Compose](https://docs.docker.com/compose/networking/).
 
-See [README.Docker.md](README.Docker.md) for a real-life Docker Compose demonstration.
+See [CONTRIBUTE.Docker.md](CONTRIBUTE.Docker.md) for a real-life Docker Compose demonstration.
 
 ## Contribution
-Please find the details in [CONTRIBUTE.md](CONTRIBUTE.md)
+Please find the details in [CONTRIBUTE.md](CONTRIBUTE.md) and [CONTRIBUTE.Docker.md](CONTRIBUTE.Docker.md).
 
 ## Copyright
   * theriverman/django-minio-backend licensed under the MIT License
