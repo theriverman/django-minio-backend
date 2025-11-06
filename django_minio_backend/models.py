@@ -76,7 +76,7 @@ class MinioBackend(Storage):
     :arg **kwargs: An arbitrary number of key-value arguments.
         Stored in the self._META_KWARGS class field
         Through self._META_KWARGS, the "metadata", "sse" and "progress" fields can be set
-        for the underlying put_object() MinIO SDK method
+        for the underlying MinIO SDK's put_object() method
     """
     DEFAULT_MEDIA_FILES_BUCKET = 'auto-generated-bucket-media-files'  # PRIVATE BY DEFAULT
 
@@ -285,12 +285,11 @@ class MinioBackend(Storage):
         """Check if an object with the name already exists"""
         object_name = Path(name).as_posix()
         try:
-            if self.stat(object_name):
-                return True
-            return False
-        except (minio.error.S3Error, minio.error.ServerError, urllib3.exceptions.MaxRetryError, AttributeError) as e:
+            self.stat(object_name)
+        except (minio.error.S3Error, minio.error.ServerError, urllib3.exceptions.MaxRetryError, AttributeError, FileNotFoundError) as e:
             logger.info(msg=f"Object could not be found: {self.bucket}/{name}", exc_info=e)
             return False
+        return True
 
     def listdir(self, path: str = '', **kwargs) -> Tuple[List[str], List[str]]:
         """
@@ -327,7 +326,10 @@ class MinioBackend(Storage):
 
     def size(self, name: str) -> int:
         """Get an object's size"""
-        obj = self.stat(Path(name).as_posix())
+        try:
+            obj = self.stat(Path(name).as_posix())
+        except (minio.error.S3Error, minio.error.ServerError, urllib3.exceptions.MaxRetryError, AttributeError, FileNotFoundError):
+            return 0
         return obj.size
 
     def url(self, name: str):
@@ -347,13 +349,13 @@ class MinioBackend(Storage):
 
         # For private buckets with caching enabled, check cache first
         cache_key = self._get_cache_key(name)
-        cached_url = cache.get(cache_key)
 
-        if cached_url:
+        if cached_url := cache.get(cache_key):
             return cached_url
 
         # Cache miss, generate new URL
-        generated_url = self._generate_url(name)
+        if (generated_url := self._generate_url(name)) is None:
+            return None
 
         # Cache the URL
         cache.set(cache_key, generated_url, self.url_cache_timeout)

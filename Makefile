@@ -1,6 +1,14 @@
 .DEFAULT_GOAL := help
 .PHONY: local compose migrations reset help
 
+# let's capture arguments provided after 'manage' and prevent make from treating them as targets
+args := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+.PHONY: manage $(args)
+
+# then swallow extra goals so they don't run as targets
+$(args): %:
+	@:
+
 LOCAL_ENV := \
 		GH_MINIO_ENDPOINT=play.min.io \
 		GH_MINIO_EXTERNAL_ENDPOINT=play.min.io \
@@ -29,14 +37,31 @@ compose: ## bootstrap and run the docker compose stack
 	docker compose exec web uv run manage.py initialize_buckets; \
 	docker compose exec web uv run manage.py collectstatic --noinput
 
-migrations: ## run makemigrations then migrate in the active environment (local or docker)
+migrations: ## run makemigrations then migrate in the active environment (local or Docker)
 	@set -euo pipefail; \
 	if docker compose ps --services --filter status=running 2>/dev/null | grep -qx web; then \
 		docker compose exec web uv run manage.py makemigrations; \
 		docker compose exec web uv run manage.py migrate; \
+		docker compose restart web; \
 	else \
 		uv run manage.py makemigrations; \
 		uv run manage.py migrate; \
+	fi
+
+shell: ## enter into an interactive Django shell (local or Docker)
+	@set -euo pipefail; \
+	if docker compose ps --services --filter status=running 2>/dev/null | grep -qx web; then \
+		docker compose exec web uv run manage.py shell; \
+	else \
+		uv run manage.py shell; \
+	fi
+
+manage: ## access Django's manage.py commands (local or Docker)
+	@set -euo pipefail; \
+	if docker compose ps --services --filter status=running 2>/dev/null | grep -qx web; then \
+		docker compose exec web uv run manage.py $(args); \
+	else \
+		uv run manage.py $(args); \
 	fi
 
 reset: ## clean up the active environment (local removes venv/db, compose shuts stack down)

@@ -15,7 +15,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 ]
+
+if settings.DEBUG:
+    if (storages_filesystem := settings.STORAGES.get("filesystem")) is not None:
+        options = storages_filesystem.get("OPTIONS")
+        urlpatterns += static(options.get("base_url"), document_root=options.get("location"))

@@ -10,7 +10,7 @@ certifi==2025.10.5
     # via minio
 cffi==2.0.0
     # via argon2-cffi-bindings
-django==5.2.7
+django==5.2.8
     # via django-minio-backend (pyproject.toml)
 minio==7.2.18
     # via django-minio-backend (pyproject.toml)

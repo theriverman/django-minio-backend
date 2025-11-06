@@ -2,7 +2,7 @@ from typing import Union
 from django.db.models.query import QuerySet
 from django.contrib import admin
 from django.core.handlers.wsgi import WSGIRequest
-from .models import PublicAttachment, PrivateAttachment, Image, GenericAttachment
+from .models import PublicAttachment, PrivateAttachment, Image, GenericAttachment, FileSystemAttachment
 
 
 # https://docs.djangoproject.com/en/2.2/ref/contrib/admin/actions/#writing-action-functions
@@ -35,16 +35,22 @@ class ImageAdmin(admin.ModelAdmin):
 @admin.register(GenericAttachment)
 class GenericAttachmentAdmin(admin.ModelAdmin):
     list_display = ('id', 'file',)
-    readonly_fields = ('id', )
+    readonly_fields = ('id', 'exists',)
     model = GenericAttachment
     actions = [delete_everywhere, ]
 
+    fieldsets = [
+        ('General Information',
+         {'fields': ('id',)}),
+        ('S3 Object',
+         {'fields': ('file', 'exists', )}),
+    ]
 
 # Register your models here.
 @admin.register(PublicAttachment)
 class PublicAttachmentAdmin(admin.ModelAdmin):
     list_display = ('id', 'content_type',)
-    readonly_fields = ('id', 'content_object', 'file_name', 'file_size', )
+    readonly_fields = ('id', 'content_object', 'file_name', 'file_size', 'exists', )
     model = PublicAttachment
     actions = [delete_everywhere, ]
 
@@ -55,7 +61,7 @@ class PublicAttachmentAdmin(admin.ModelAdmin):
         ('S3 Object',
          {'fields': ('file_name', 'file_size', 'file',)}),
         ('S3 Object Details',
-         {'fields': ('content_object', 'content_type', 'object_id',)}),
+         {'fields': ('content_object', 'content_type', 'object_id', 'exists', )}),
     ]
 
     def get_actions(self, request):
@@ -68,7 +74,7 @@ class PublicAttachmentAdmin(admin.ModelAdmin):
 @admin.register(PrivateAttachment)
 class PrivateAttachmentAdmin(admin.ModelAdmin):
     list_display = ('id', 'content_type',)
-    readonly_fields = ('id', 'content_object', 'file_name', 'file_size')
+    readonly_fields = ('id', 'content_object', 'file_name', 'file_size', 'exists', )
     model = PrivateAttachment
     actions = [delete_everywhere, ]
 
@@ -79,7 +85,7 @@ class PrivateAttachmentAdmin(admin.ModelAdmin):
         ('S3 Object',
          {'fields': ('file_name', 'file_size', 'file',)}),
         ('S3 Object Details',
-         {'fields': ('content_object', 'content_type', 'object_id',)}),
+         {'fields': ('content_object', 'content_type', 'object_id', 'exists',)}),
     ]
 
     def get_actions(self, request):
@@ -87,3 +93,18 @@ class PrivateAttachmentAdmin(admin.ModelAdmin):
         if 'delete_selected' in actions:
             del actions['delete_selected']
         return actions
+
+
+@admin.register(FileSystemAttachment)
+class FileSystemAttachmentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'file')
+    readonly_fields = ('id', 'file_name', 'file_size', 'exists')
+    model = FileSystemAttachment
+
+    fieldsets = [
+
+        ('General Information',
+         {'fields': ('id',)}),
+        ('FileSystem Object',
+         {'fields': ('file_name', 'file_size', 'file', 'exists', )}),
+    ]
