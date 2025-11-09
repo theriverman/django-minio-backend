@@ -34,6 +34,8 @@ Choose between deploying locally or with Docker Compose:
 Should you make changes to the models, you can execute `makemigrations` then `migrate` in a single step:
 * `make migrations`
 
+Execute `make` without any arguments to see all available options.
+
 ## Quick Setup with Docker Compose
 See [CONTRIBUTE.Docker.md](./CONTRIBUTE.Docker.md).
 

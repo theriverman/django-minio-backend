@@ -1,4 +1,7 @@
 # Docker Compose Description for django-minio-backend
+**Hint:** See [CONTRIBUTE.md](CONTRIBUTE.md) for a detailed walkthrough on deploying a demo/development environment.
+
+## Manual Docker Compose Deployment
 Execute the following steps to start a demo or development environment using Docker Compose:
 
 **Start the Docker Compose services:**
