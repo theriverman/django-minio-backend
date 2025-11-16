@@ -39,17 +39,16 @@ class Command(BaseCommand):
 
         # Part 1: Delete orphaned files from Minio
         for s in storage_instances:
-            all_buckets = self._get_all_buckets(s)
-            self._clean_orphaned_files(s, all_buckets, db_files, dry_run)
+            self._clean_orphaned_files(s, db_files, dry_run)
             # Part 2: Check for missing files in Minio that are referenced in the database
             if check_missing:
                 self._check_missing_files(s, db_files_by_model)
 
-    def _clean_orphaned_files(self, storage, all_buckets, db_files, dry_run):
+    def _clean_orphaned_files(self, storage: MinioBackend, db_files: set, dry_run: bool):
         """Delete orphaned files from Minio that are not referenced in the database"""
         total_deleted = 0
 
-        for bucket_name in all_buckets:
+        for bucket_name in [storage.bucket, *storage.PRIVATE_BUCKETS, *storage.PUBLIC_BUCKETS]:
             # Set the current bucket for operations
             storage._BUCKET_NAME = bucket_name
 
@@ -99,11 +98,12 @@ class Command(BaseCommand):
         if dry_run:
             self.stdout.write(self.style.SUCCESS(f"Would delete {total_deleted} orphaned files in total (dry run)"))
         else:
-            self.stdout.write(self.style.SUCCESS(# TODO: i think it's misleading to print this if len(total_deleted) == 0
-                #   I'd rather print something like: "There were no orphaned files found"
-                f"Successfully deleted {total_deleted} orphaned files in total"))
+            if total_deleted > 0:
+                self.stdout.write(self.style.SUCCESS(f"Successfully deleted {total_deleted} orphaned files in total"))
+            else:
+                self.stdout.write(self.style.SUCCESS(f"{total_deleted} orphaned files were found"))
 
-    def _check_missing_files(self, storage, db_files_by_model):
+    def _check_missing_files(self, storage: MinioBackend, db_files_by_model):
         """Check for database references to files that don't exist in Minio"""
         self.stdout.write(self.style.NOTICE("\nChecking for database references to missing Minio files..."))
 
@@ -129,10 +129,6 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("No missing files found in Minio that are referenced in the database"))
         else:
             self.stdout.write(self.style.WARNING(f"Found {missing_files_count} database references to missing Minio files"))
-
-    @staticmethod
-    def _get_all_buckets(storage: MinioBackend):
-        return [storage.bucket, *storage.PRIVATE_BUCKETS, *storage.PUBLIC_BUCKETS, ]
 
     def _collect_file_fields(self):
         """Collect file fields across the Django project"""
