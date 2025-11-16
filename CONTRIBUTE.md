@@ -77,10 +77,10 @@ python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies with uv (much faster than pip)
-uv pip install -r requirements.txt
+uv sync
 
 # Or use pip if you prefer
-pip install -r requirements.txt
+pip install .
 
 # Run migrations
 python manage.py migrate

@@ -41,13 +41,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v3
 
-      - name: Install dependencies
-        run: |
-          uv pip install --system Django~=${{ matrix.django-version }}
-          uv pip install --system -r requirements.txt
+      - name: Sync dependencies
+        run: uv sync --frozen --locked
 
       - name: Run migrations
-        run: python manage.py migrate
+        run: uv run --locked --frozen --with "Django~=${{ matrix.django-version }}" python manage.py migrate
 
       - name: Run tests
-        run: python manage.py test
+        run: uv run --locked --frozen --with "Django~=${{ matrix.django-version }}" python manage.py test
