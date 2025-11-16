@@ -42,10 +42,10 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       - name: Sync dependencies
-        run: uv sync --frozen --locked
+        run: uv sync --frozen
 
       - name: Run migrations
-        run: uv run --locked --frozen --with "Django~=${{ matrix.django-version }}" python manage.py migrate
+        run: uv run --frozen --with "Django~=${{ matrix.django-version }}" python manage.py migrate
 
       - name: Run tests
-        run: uv run --locked --frozen --with "Django~=${{ matrix.django-version }}" python manage.py test
+        run: uv run --frozen --with "Django~=${{ matrix.django-version }}" python manage.py test
