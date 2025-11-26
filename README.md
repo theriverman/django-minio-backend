@@ -278,7 +278,7 @@ and sets the *public* bucket's privacy policy from `private`(default) to `public
     python manage.py initialize_buckets
     ```
 
-    Code reference: [initialize_buckets.py](django_minio_backend/management/commands/initialize_buckets.py).
+Code reference: [initialize_buckets.py](django_minio_backend/management/commands/initialize_buckets.py).
 
 #### clean_orphaned_minio_files
 This management command helps maintain the integrity of your MinIO storage by:
