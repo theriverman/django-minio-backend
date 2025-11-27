@@ -192,11 +192,20 @@ class MinioBackend(Storage):
                 object_name=file_path.as_posix(),
                 data=content,
                 length=-1,
-                part_size=self.__MINIO_MULTIPART_PART_SIZE,
                 content_type=self._guess_content_type(file_path_name, content),
-                metadata=self._META_KWARGS.get('metadata', None),
+                headers=self._META_KWARGS.get('headers', None),
+                user_metadata=self._META_KWARGS.get('user_metadata', None),
                 sse=self._META_KWARGS.get('sse', None),
                 progress=self._META_KWARGS.get('progress', None),
+                part_size=self.__MINIO_MULTIPART_PART_SIZE,
+                checksum=self._META_KWARGS.get('checksum', None),
+                num_parallel_uploads=self._META_KWARGS.get('num_parallel_uploads', 3),
+                tags=self._META_KWARGS.get('tags', None),
+                retention=self._META_KWARGS.get('retention', None),
+                legal_hold=self._META_KWARGS.get('legal_hold', False),
+                region=self._META_KWARGS.get('region', None),
+                extra_headers=self._META_KWARGS.get('extra_headers', None),
+                extra_query_params=self._META_KWARGS.get('extra_query_params', None),
             )
         else:
             # Traditional upload - read entire file into memory
@@ -209,9 +218,19 @@ class MinioBackend(Storage):
                 data=content_bytes,
                 length=content_length,
                 content_type=self._guess_content_type(file_path_name, content),
-                metadata=self._META_KWARGS.get('metadata', None),
+                headers=self._META_KWARGS.get('headers', None),
+                user_metadata=self._META_KWARGS.get('user_metadata', None),
                 sse=self._META_KWARGS.get('sse', None),
                 progress=self._META_KWARGS.get('progress', None),
+                part_size=0,
+                checksum=self._META_KWARGS.get('checksum', None),
+                num_parallel_uploads=self._META_KWARGS.get('num_parallel_uploads', 3),
+                tags=self._META_KWARGS.get('tags', None),
+                retention=self._META_KWARGS.get('retention', None),
+                legal_hold=self._META_KWARGS.get('legal_hold', False),
+                region=self._META_KWARGS.get('region', None),
+                extra_headers=self._META_KWARGS.get('extra_headers', None),
+                extra_query_params=self._META_KWARGS.get('extra_query_params', None),
             )
         return file_path.as_posix()
 
@@ -253,7 +272,7 @@ class MinioBackend(Storage):
 
         if mode != 'rb':
             raise ValueError('Files retrieved from MinIO are read-only. Use save() method to override contents')
-        resp: urllib3.response.HTTPResponse = self.client.get_object(self.bucket, object_name, **kwargs)
+        resp: urllib3.response.HTTPResponse = self.client.get_object(bucket_name=self.bucket, object_name=object_name, **kwargs)
         try:
             file = S3File(file=io.BytesIO(resp.read()), name=object_name, storage=self)
             return file
@@ -268,7 +287,7 @@ class MinioBackend(Storage):
         :raises minio.error.ServerError: If the minio backend couldn't be reached
         :raises urllib3.exceptions.MaxRetryError: If the minio backend request has timed out
         """
-        return self.client.stat_object(self.bucket, object_name=Path(name).as_posix())
+        return self.client.stat_object(bucket_name=self.bucket, object_name=Path(name).as_posix())
 
     def delete(self, name: str):
         """
@@ -518,7 +537,7 @@ class MinioBackend(Storage):
     # MAINTENANCE
     def check_bucket_existence(self):
         """Check if configured bucket [self.bucket] exists"""
-        if not self.client.bucket_exists(self.bucket):
+        if not self.client.bucket_exists(bucket_name=self.bucket):
             self.client.make_bucket(bucket_name=self.bucket)
 
     def check_bucket_existences(self, max_workers: Optional[int] = None):
@@ -550,7 +569,7 @@ class MinioBackend(Storage):
                 Tuple of (bucket_name, already_existed, error)
             """
             try:
-                exists = self.client.bucket_exists(bucket)
+                exists = self.client.bucket_exists(bucket_name=bucket)
                 if not exists:
                     self.client.make_bucket(bucket_name=bucket)
                     logger.info(f"Created bucket: {bucket}")
