@@ -10,7 +10,7 @@ license = { text = "MIT" }
 requires-python = ">=3.11"
 dependencies = [
     "Django>=4.2",
-    "minio>=7.2.19",
+    "minio==7.2.19",
     "Pillow>=10.0.0",  # Required for example application
 ]
 classifiers = [

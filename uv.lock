@@ -163,7 +163,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=4.2" },
-    { name = "minio", specifier = ">=7.2" },
+    { name = "minio", specifier = "==7.2.19" },
     { name = "pillow", specifier = ">=10.0.0" },
 ]
 
