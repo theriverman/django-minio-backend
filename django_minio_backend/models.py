@@ -12,10 +12,10 @@ import logging
 import mimetypes
 import ssl
 import datetime
+import sys
 from pathlib import Path
 from typing import Union, List, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Union, List
 import hashlib
 from datetime import timedelta
 
@@ -34,7 +34,7 @@ from django.utils.deconstruct import deconstructible
 from django.core.cache import cache
 
 
-from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting, get_storages_setting
+from .utils import MinioServerStatus, PrivatePublicMixedError, ConfigurationError, get_setting
 
 
 __all__ = ['MinioBackend', 'MinioBackendStatic', 'get_iso_date', 'iso_date_prefix', ]
@@ -305,7 +305,12 @@ class MinioBackend(Storage):
         object_name = Path(name).as_posix()
         try:
             self.stat(object_name)
-        except (minio.error.S3Error, minio.error.ServerError, urllib3.exceptions.MaxRetryError, AttributeError, FileNotFoundError) as e:
+        except minio.error.S3Error as e:
+            if ("collectstatic" in sys.argv) and getattr(e, "code", None) in {"NoSuchKey", "NoSuchObject"}:
+                return False
+            logger.info(msg=f"Object could not be found: {self.bucket}/{name}", exc_info=e)
+            return False
+        except (minio.error.ServerError, urllib3.exceptions.MaxRetryError, AttributeError, FileNotFoundError) as e:
             logger.info(msg=f"Object could not be found: {self.bucket}/{name}", exc_info=e)
             return False
         return True
