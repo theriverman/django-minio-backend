@@ -63,14 +63,14 @@ class Command(BaseCommand):
                     object_name = obj.object_name
 
                     # Check if the object is referenced in the database
-                    if object_name not in db_files:
+                    if f"{bucket_name}/{object_name}" not in db_files:
                         delete_objects.append(DeleteObject(object_name))
                         self.stdout.write(f"Found orphaned file: {bucket_name}/{object_name}")
 
                 # Delete orphaned objects in bulk
                 if delete_objects:
                     if not dry_run:
-                        errors = storage.client.remove_objects(bucket_name, delete_objects)
+                        errors = storage.client.remove_objects(bucket_name=bucket_name, delete_object_list=delete_objects)
 
                         # Check for errors during deletion
                         error_count = 0
@@ -160,7 +160,7 @@ class Command(BaseCommand):
                         if file_path := getattr(obj, field_name):
                             bucket = file_path.storage.bucket
                             file_path_str = str(file_path)
-                            db_files.add(file_path_str)
+                            db_files.add(f"{bucket}/{file_path_str}")
                             db_files_by_model[model][field_name].append((obj.pk, f"{bucket}/{file_path_str}"))
                     db_files.discard("")
 

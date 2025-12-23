@@ -193,19 +193,15 @@ class MinioBackend(Storage):
                 data=content,
                 length=-1,
                 content_type=self._guess_content_type(file_path_name, content),
-                headers=self._META_KWARGS.get('headers', None),
-                user_metadata=self._META_KWARGS.get('user_metadata', None),
+                metadata=self._META_KWARGS.get('metadata', None),
                 sse=self._META_KWARGS.get('sse', None),
                 progress=self._META_KWARGS.get('progress', None),
                 part_size=self.__MINIO_MULTIPART_PART_SIZE,
-                checksum=self._META_KWARGS.get('checksum', None),
                 num_parallel_uploads=self._META_KWARGS.get('num_parallel_uploads', 3),
                 tags=self._META_KWARGS.get('tags', None),
                 retention=self._META_KWARGS.get('retention', None),
                 legal_hold=self._META_KWARGS.get('legal_hold', False),
-                region=self._META_KWARGS.get('region', None),
-                extra_headers=self._META_KWARGS.get('extra_headers', None),
-                extra_query_params=self._META_KWARGS.get('extra_query_params', None),
+                write_offset=self._META_KWARGS.get('write_offset', None),
             )
         else:
             # Traditional upload - read entire file into memory
@@ -218,19 +214,15 @@ class MinioBackend(Storage):
                 data=content_bytes,
                 length=content_length,
                 content_type=self._guess_content_type(file_path_name, content),
-                headers=self._META_KWARGS.get('headers', None),
-                user_metadata=self._META_KWARGS.get('user_metadata', None),
+                metadata=self._META_KWARGS.get('metadata', None),
                 sse=self._META_KWARGS.get('sse', None),
                 progress=self._META_KWARGS.get('progress', None),
                 part_size=0,
-                checksum=self._META_KWARGS.get('checksum', None),
                 num_parallel_uploads=self._META_KWARGS.get('num_parallel_uploads', 3),
                 tags=self._META_KWARGS.get('tags', None),
                 retention=self._META_KWARGS.get('retention', None),
                 legal_hold=self._META_KWARGS.get('legal_hold', False),
-                region=self._META_KWARGS.get('region', None),
-                extra_headers=self._META_KWARGS.get('extra_headers', None),
-                extra_query_params=self._META_KWARGS.get('extra_query_params', None),
+                write_offset=self._META_KWARGS.get('write_offset', None),
             )
         return file_path.as_posix()
 
@@ -243,7 +235,7 @@ class MinioBackend(Storage):
             # Try to get the ETag from the object stats
             obj = self.stat(name)
             etag = obj.etag if hasattr(obj, 'etag') else ''
-        except (AttributeError, Exception) as e:
+        except (AttributeError, Exception):
             etag = ''
 
         # Create a unique key using the bucket name, file name, and ETag
